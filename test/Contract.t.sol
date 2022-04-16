@@ -3,17 +3,17 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "src/Contract.sol";
+import "src/Cally.sol";
 
 contract TestContract is Test {
-    Contract c;
+    Cally c;
 
     function setUp() public {
-        c = new Contract();
+        c = new Cally();
     }
 
     function testBar() public {
-        assertEq(uint256(1), 2, "ok");
+        assertEq(uint256(1), 1, "ok");
     }
 
     function testFoo(uint256 x) public {

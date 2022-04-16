@@ -1,2 +1,5 @@
+[default]
+solc_version = "0.8.13"
+
 [ci]
 fuzz-runs = 10_000
