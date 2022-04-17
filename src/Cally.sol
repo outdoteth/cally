@@ -53,10 +53,20 @@ contract Cally is ERC721("Cally", "CALL") {
         emit Transfer(address(0), to, id);
     }
 
-    // set balanceOf to 1 for all users
+    // set balanceOf to max for all users
     function balanceOf(address owner) public pure override returns (uint256) {
         require(owner != address(0), "ZERO_ADDRESS");
-        return 1;
+        return type(uint256).max;
+    }
+
+    function _forceTransfer(address to, uint256 id) internal {
+        require(to != address(0), "INVALID_RECIPIENT");
+
+        address from = _ownerOf[id];
+        _ownerOf[id] = to;
+        delete getApproved[id];
+
+        emit Transfer(from, to, id);
     }
 
     function createVault(
@@ -96,6 +106,13 @@ contract Cally is ERC721("Cally", "CALL") {
     function getDutchAuctionStrike(uint256 vaultId) public view returns (uint256 currentStrike) {
         Vault memory vault = _vaults[vaultId];
 
+        // TODO: change this
+        /*
+            delta = auctionEnd - currentTimestamp
+            progress = delta / auctionDuration
+            strike = progress^2 * startingStrike
+        */
+
         // strike = (startingStrike * max(end - current, 0)) / auctionDuration
         uint32 auctionEndTimestamp = vault.currentExpiration + AUCTION_DURATION;
         uint256 startingStrike = strikeOptions[vault.dutchAuctionStartingStrike];
@@ -127,9 +144,7 @@ contract Cally is ERC721("Cally", "CALL") {
         // force transfer expired option to new owner
         // option id is for a respective vault is always vaultId + 1
         optionId = vaultId + 1;
-
-        // TODO: change this to remove approvals too (use a function instead)
-        _ownerOf[optionId] = msg.sender;
+        _forceTransfer(msg.sender, optionId);
 
         // pay premium
         uint256 premium = premiumOptions[vault.premium];
