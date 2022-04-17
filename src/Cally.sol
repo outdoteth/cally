@@ -161,18 +161,18 @@ contract Cally is ERC721("Cally", "CALL") {
         // check option hasn't expired
         require(block.timestamp < vault.currentExpiration, "Option has expired");
 
-        // transfer the WETH to vault owner
-        weth.transferFrom(msg.sender, ownerOf(vaultId), vault.currentStrike);
-
-        // transfer the NFTs to the buyer
-        ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenId);
-
         // burn the optionId
         _burn(optionId);
 
         // mark the vault as expired
         vault.isExercised = true;
         _vaults[vaultId] = vault;
+
+        // transfer the WETH to vault owner
+        weth.transferFrom(msg.sender, ownerOf(vaultId), vault.currentStrike);
+
+        // transfer the NFTs to the buyer
+        ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenId);
     }
 
     function initiateWithdraw(uint256 vaultId) external {
