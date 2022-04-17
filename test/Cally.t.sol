@@ -28,19 +28,6 @@ contract TestCally is Test {
         assertEq(c.baseURI(), "http://test/", "Should set baseURI");
     }
 
-    function testSendERC721ForCollateral() public {
-        // arrange
-        bayc.mint(address(this), 1);
-        bayc.setApprovalForAll(address(c), true);
-
-        // act
-        c.createVault(1, address(bayc), 1, 1, 0, 0);
-
-        // assert
-        assertEq(bayc.balanceOf(address(c)), 1, "Should have sent BAYC to Cally");
-        assertEq(bayc.ownerOf(1), address(c), "Should have sent BAYC to Cally");
-    }
-
     // test buyOption
 
     // can't fill unless current option has expired
