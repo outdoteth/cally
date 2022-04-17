@@ -2,12 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-
-import "../mocks/MockWeth.sol";
-import "../mocks/MockERC721.sol";
-
 import "../shared/Fixture.t.sol";
-
 import "src/Cally.sol";
 
 contract TestCreateVault is Test, Fixture {
