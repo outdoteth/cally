@@ -142,7 +142,7 @@ contract Cally is CallyNft {
         // check correct ETH amount was sent to pay the strike
         require(msg.value == vault.currentStrike, "Incorrect ETH sent for strike");
 
-        // burn the optionId
+        // burn the option token
         _burn(optionId);
 
         // mark the vault as expired
