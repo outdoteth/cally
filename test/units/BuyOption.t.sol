@@ -8,6 +8,7 @@ import "src/Cally.sol";
 contract TestBuyOption is Fixture {
     uint256 internal vaultId;
     uint256 internal premium;
+    uint256 internal strike;
     Cally.Vault internal vault;
 
     function setUp() public {
@@ -19,32 +20,45 @@ contract TestBuyOption is Fixture {
 
         uint8 premiumIndex = 1;
         premium = c.premiumOptions(premiumIndex);
+        uint8 strikeIndex = 1;
+        strike = c.strikeOptions(strikeIndex);
 
-        vaultId = c.createVault(1, address(bayc), premiumIndex, 1, 1, 0);
+        vaultId = c.createVault(1, address(bayc), premiumIndex, strikeIndex, 1, 0);
         vault = c.vaults(vaultId);
         vm.stopPrank();
-
-        // regular addy here
-        weth.deposit{value: 10 ether}();
-        weth.approve(address(c), type(uint256).max);
     }
 
-    function testItTransfersPremiumToVaultOwner() public {
+    function testItIncrementsVaultOwnersUncollectedPremiums() public {
         // arrange
-        uint256 expectedWethBalanceChange = premium;
-        uint256 wethBalanceBefore = weth.balanceOf(babe);
+        uint256 expectedChange = premium;
+        uint256 uncollectedPremiumsBefore = c.ethBalance(babe);
 
         // act
-        c.buyOption(vaultId);
-        uint256 wethBalanceChange = weth.balanceOf(babe) - wethBalanceBefore;
+        c.buyOption{value: premium}(vaultId);
+        uint256 uncollectedPremiumsAfter = c.ethBalance(babe);
 
         // assert
-        assertEq(wethBalanceChange, expectedWethBalanceChange, "Should have sent premium weth to owner");
+        uint256 uncollectedPremiumsChange = uncollectedPremiumsAfter - uncollectedPremiumsBefore;
+        assertEq(uncollectedPremiumsChange, expectedChange, "Should have incremented uncollected premiums for owner");
+    }
+
+    function testItSendsPremiumETHToContract() public {
+        // arrange
+        uint256 expectedChange = premium;
+        uint256 balanceBefore = address(c).balance;
+
+        // act
+        c.buyOption{value: premium}(vaultId);
+        uint256 balanceAfter = address(c).balance;
+        uint256 balanceChange = balanceAfter - balanceBefore;
+
+        // assert
+        assertEq(balanceChange, expectedChange, "Should have sent ETH to contract");
     }
 
     function testItMintsOptionERC721ToBuyer() public {
         // act
-        uint256 optionId = c.buyOption(vaultId);
+        uint256 optionId = c.buyOption{value: premium}(vaultId);
 
         // assert
         assertEq(c.ownerOf(optionId), address(this), "Should have minted option to buyer");
@@ -59,7 +73,7 @@ contract TestBuyOption is Fixture {
         uint256 expectedExpiration = block.timestamp + vault.durationDays * 1 days;
 
         // act
-        c.buyOption(vaultId);
+        c.buyOption{value: premium}(vaultId);
         uint256 expiration = c.vaults(vaultId).currentExpiration;
 
         // assert
@@ -72,7 +86,7 @@ contract TestBuyOption is Fixture {
 
         // assert
         vm.expectRevert("Auction not started");
-        c.buyOption(vaultId);
+        c.buyOption{value: premium}(vaultId);
     }
 
     function testItCannotBuyIfVaultIsWithdrawing() public {
@@ -82,26 +96,26 @@ contract TestBuyOption is Fixture {
 
         // assert
         vm.expectRevert("Vault is being withdrawn");
-        c.buyOption(vaultId);
+        c.buyOption{value: premium}(vaultId);
     }
 
     function testItCannotBuyIfVaultHasAlreadyBeenExercised() public {
         // arrange
-        uint256 optionId = c.buyOption(vaultId);
-        c.exercise(optionId);
+        uint256 optionId = c.buyOption{value: premium}(vaultId);
+        c.exercise{value: strike}(optionId);
 
         // assert
         vm.expectRevert("Vault already exercised");
-        c.buyOption(vaultId);
+        c.buyOption{value: premium}(vaultId);
     }
 
     function testItCannotBuyOptionTwice() public {
         // arrange
-        c.buyOption(vaultId);
+        c.buyOption{value: premium}(vaultId);
 
         // assert
         skip(300);
         vm.expectRevert("Auction not started");
-        c.buyOption(vaultId);
+        c.buyOption{value: premium}(vaultId);
     }
 }

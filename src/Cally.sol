@@ -2,11 +2,13 @@
 pragma solidity 0.8.13;
 
 import "./ICally.sol";
-import "solmate/utils/SafeTransferLib.sol";
-import "solmate/tokens/ERC721.sol";
+import "./CallyNft.sol";
 
-contract Cally is ERC721("Cally", "CALL") {
+import "solmate/utils/SafeTransferLib.sol";
+
+contract Cally is CallyNft {
     using SafeTransferLib for ERC20;
+    using SafeTransferLib for address payable;
 
     struct Vault {
         uint256 tokenId;
@@ -21,52 +23,24 @@ contract Cally is ERC721("Cally", "CALL") {
         uint256 currentStrike;
     }
 
+    uint32 public constant AUCTION_DURATION = 24 hours;
+
     // prettier-ignore
     uint256[] public premiumOptions = [0.01 ether, 0.025 ether, 0.05 ether, 0.075 ether, 0.1 ether, 0.25 ether, 0.5 ether, 0.75 ether, 1.0 ether, 2.5 ether, 5.0 ether, 7.5 ether, 10 ether, 25 ether, 50 ether, 75 ether, 100 ether];
     // prettier-ignore
     uint256[] public strikeOptions = [1 ether, 2 ether, 3 ether, 5 ether, 8 ether, 13 ether, 21 ether, 34 ether, 55 ether, 89 ether, 144 ether, 233 ether, 377 ether, 610 ether, 987 ether, 1597 ether, 2584 ether, 4181 ether, 6765 ether];
-    uint32 public constant AUCTION_DURATION = 24 hours;
-
-    ERC20 public immutable weth;
-    string public baseURI;
 
     uint256 public vaultIndex = 1;
-    mapping(uint256 => Vault) private _vaults;
 
-    constructor(address weth_, string memory baseURI_) {
-        weth = ERC20(weth_);
+    mapping(uint256 => Vault) private _vaults;
+    mapping(address => uint256) public ethBalance;
+
+    constructor(string memory baseURI_) {
         baseURI = baseURI_;
     }
 
     function vaults(uint256 vaultId) public view returns (Vault memory) {
         return _vaults[vaultId];
-    }
-
-    // ignore balanceOf to save 20k gas
-    // questionable tradeoff but should be ok for our case
-    function _mint(address to, uint256 id) internal override {
-        require(to != address(0), "INVALID_RECIPIENT");
-        require(_ownerOf[id] == address(0), "ALREADY_MINTED");
-
-        _ownerOf[id] = to;
-
-        emit Transfer(address(0), to, id);
-    }
-
-    // set balanceOf to max for all users
-    function balanceOf(address owner) public pure override returns (uint256) {
-        require(owner != address(0), "ZERO_ADDRESS");
-        return type(uint256).max;
-    }
-
-    function _forceTransfer(address to, uint256 id) internal {
-        require(to != address(0), "INVALID_RECIPIENT");
-
-        address from = _ownerOf[id];
-        _ownerOf[id] = to;
-        delete getApproved[id];
-
-        emit Transfer(from, to, id);
     }
 
     function createVault(
@@ -123,7 +97,7 @@ contract Cally is ERC721("Cally", "CALL") {
         currentStrike = (startingStrike * delta) / AUCTION_DURATION;
     }
 
-    function buyOption(uint256 vaultId) external returns (uint256 optionId) {
+    function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
         Vault memory vault = _vaults[vaultId];
 
         // check that the vault still has the NFTs as collateral
@@ -136,22 +110,26 @@ contract Cally is ERC721("Cally", "CALL") {
         uint32 auctionStartTimestamp = vault.currentExpiration;
         require(block.timestamp >= auctionStartTimestamp, "Auction not started");
 
+        // check enough eth was sent to cover premium
+        uint256 premium = premiumOptions[vault.premium];
+        require(msg.value == premium, "Incorrect ETH amount sent");
+
         // set new currentStrike and expiration
         vault.currentExpiration = uint32(block.timestamp) + (vault.durationDays * 1 days);
         vault.currentStrike = getDutchAuctionStrike(vaultId);
         _vaults[vaultId] = vault;
 
-        // force transfer expired option to new owner
+        // force transfer the expired option from old owner to new owner
         // option id is for a respective vault is always vaultId + 1
         optionId = vaultId + 1;
         _forceTransfer(msg.sender, optionId);
 
-        // pay premium
-        uint256 premium = premiumOptions[vault.premium];
-        weth.transferFrom(msg.sender, ownerOf(vaultId), premium);
+        // increment vault owner's unclaimed premiums
+        address vaultOwner = ownerOf(vaultId);
+        ethBalance[vaultOwner] += msg.value;
     }
 
-    function exercise(uint256 optionId) external {
+    function exercise(uint256 optionId) external payable {
         // check owner
         require(msg.sender == ownerOf(optionId), "You are not the owner");
 
@@ -161,6 +139,9 @@ contract Cally is ERC721("Cally", "CALL") {
         // check option hasn't expired
         require(block.timestamp < vault.currentExpiration, "Option has expired");
 
+        // check correct ETH amount was sent to pay the strike
+        require(msg.value == vault.currentStrike, "Incorrect ETH sent for strike");
+
         // burn the optionId
         _burn(optionId);
 
@@ -168,8 +149,8 @@ contract Cally is ERC721("Cally", "CALL") {
         vault.isExercised = true;
         _vaults[vaultId] = vault;
 
-        // transfer the WETH to vault owner
-        weth.transferFrom(msg.sender, ownerOf(vaultId), vault.currentStrike);
+        // Increment vault owner's ETH balance
+        ethBalance[ownerOf(vaultId)] += msg.value;
 
         // transfer the NFTs to the buyer
         ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenId);
@@ -191,17 +172,27 @@ contract Cally is ERC721("Cally", "CALL") {
         require(vault.isWithdrawing, "Vault not in withdrawable state");
         require(block.timestamp > vault.currentExpiration, "Option still active");
 
+        // claim any ETH still in the account
+        harvest(vaultId);
+
         // burn option and vault
         uint256 optionId = vaultId + 1;
-        _ownerOf[optionId] = address(0);
+        _burn(optionId);
         _burn(vaultId);
 
         // send NFTs back to owner
         ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenId);
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_ownerOf[tokenId] != address(0), "URI query for NOT_MINTED token");
-        return string(abi.encodePacked(baseURI, tokenId));
+    function harvest(uint256 vaultId) public {
+        address vaultOwner = ownerOf(vaultId);
+        require(msg.sender == vaultOwner, "You are not the owner");
+
+        // reset premiums
+        uint256 amount = ethBalance[vaultOwner];
+        ethBalance[vaultOwner] = 0;
+
+        // transfer premiums to owner
+        payable(msg.sender).safeTransferETH(amount);
     }
 }

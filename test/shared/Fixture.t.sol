@@ -10,14 +10,14 @@ import "src/Cally.sol";
 
 abstract contract Fixture is Test {
     Cally internal c;
-    MockWeth internal weth;
     MockERC721 internal bayc;
 
     address internal babe;
+    string internal checkpointLabel;
+    uint256 internal checkpointGasLeft;
 
     constructor() {
-        weth = new MockWeth();
-        c = new Cally(address(weth), "http://test/");
+        c = new Cally("http://test/");
         bayc = new MockERC721("Mock Bored Ape Yacht Club", "MBAYC");
 
         babe = address(0xbabe);
@@ -25,5 +25,19 @@ abstract contract Fixture is Test {
 
         // make sure timestamp is not 0
         vm.warp(0xffff);
+    }
+
+    function startMeasuringGas(string memory label) internal virtual {
+        checkpointLabel = label;
+        checkpointGasLeft = gasleft();
+    }
+
+    function stopMeasuringGas() internal virtual {
+        uint256 checkpointGasLeft2 = gasleft();
+
+        // Subtract 100 to account for the warm SLOAD in startMeasuringGas.
+        uint256 gasDelta = checkpointGasLeft - checkpointGasLeft2 - 20_000;
+
+        console.log(string(abi.encodePacked(checkpointLabel, " Gas")), gasDelta);
     }
 }
