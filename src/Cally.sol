@@ -3,11 +3,12 @@ pragma solidity 0.8.13;
 
 import "solmate/utils/SafeTransferLib.sol";
 import "solmate/utils/ReentrancyGuard.sol";
+import "openzeppelin/access/Ownable.sol";
 
 import "./ICally.sol";
 import "./CallyNft.sol";
 
-contract Cally is CallyNft, ReentrancyGuard {
+contract Cally is CallyNft, ReentrancyGuard, Ownable {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address payable;
 
@@ -45,6 +46,8 @@ contract Cally is CallyNft, ReentrancyGuard {
     // prettier-ignore
     uint256[] public strikeOptions = [1 ether, 2 ether, 3 ether, 5 ether, 8 ether, 13 ether, 21 ether, 34 ether, 55 ether, 89 ether, 144 ether, 233 ether, 377 ether, 610 ether, 987 ether, 1597 ether, 2584 ether, 4181 ether, 6765 ether];
 
+    uint256 public feeRate = 0;
+    uint256 public protocolUnclaimedFees = 0;
     uint256 public vaultIndex = 1;
 
     mapping(uint256 => Vault) private _vaults;
@@ -53,6 +56,16 @@ contract Cally is CallyNft, ReentrancyGuard {
     constructor(string memory baseURI_, address weth_) {
         baseURI = baseURI_;
         weth = ERC20(weth_);
+    }
+
+    function setFee(uint256 feeRate_) public onlyOwner {
+        feeRate = feeRate_;
+    }
+
+    function withdrawProtocolFees() public onlyOwner {
+        uint256 amount = protocolUnclaimedFees;
+        protocolUnclaimedFees = 0;
+        payable(msg.sender).safeTransferETH(amount);
     }
 
     function vaults(uint256 vaultId) public view returns (Vault memory) {
@@ -176,8 +189,15 @@ contract Cally is CallyNft, ReentrancyGuard {
         vault.isExercised = true;
         _vaults[vaultId] = vault;
 
-        // Increment vault owner's ETH balance
-        ethBalance[ownerOf(vaultId)] += msg.value;
+        // collect protocol fee
+        uint256 fee = 0;
+        if (feeRate > 0) {
+            fee = (msg.value * feeRate) / 1e18;
+            protocolUnclaimedFees += fee;
+        }
+
+        // increment vault owner's ETH balance
+        ethBalance[ownerOf(vaultId)] += msg.value - fee;
 
         // transfer the NFTs or ERC20s to the buyer
         vault.tokenType == TokenType.ERC721
