@@ -7,11 +7,16 @@ import "solmate/utils/ReentrancyGuard.sol";
 import "./ICally.sol";
 import "./CallyNft.sol";
 
-import "forge-std/Test.sol";
-
-contract Cally is CallyNft, ReentrancyGuard, Test {
+contract Cally is CallyNft, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address payable;
+
+    event NewVault(uint256 indexed vaultId, address indexed from, address indexed token);
+    event BoughtOption(uint256 indexed optionId, address indexed from, address indexed token);
+    event ExercisedOption(uint256 indexed optionId, address indexed from);
+    event Harvested(address indexed from, uint256 amount);
+    event InitiatedWithdrawal(uint256 indexed vaultId, address indexed from);
+    event Withdrawal(uint256 indexed vaultId, address indexed from);
 
     enum TokenType {
         ERC721,
@@ -89,6 +94,8 @@ contract Cally is CallyNft, ReentrancyGuard, Test {
         vault.tokenType == TokenType.ERC721
             ? ERC721(vault.token).transferFrom(msg.sender, address(this), vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
+
+        emit NewVault(vaultId, msg.sender, token);
     }
 
     function getPremium(uint256 vaultId) public view returns (uint256 premium) {
@@ -145,6 +152,8 @@ contract Cally is CallyNft, ReentrancyGuard, Test {
         // increment vault owner's unclaimed premiums
         address vaultOwner = ownerOf(vaultId);
         ethBalance[vaultOwner] += msg.value;
+
+        emit BoughtOption(optionId, msg.sender, vault.token);
     }
 
     function exercise(uint256 optionId) external payable {
@@ -174,11 +183,15 @@ contract Cally is CallyNft, ReentrancyGuard, Test {
         vault.tokenType == TokenType.ERC721
             ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
+
+        emit ExercisedOption(optionId, msg.sender);
     }
 
     function initiateWithdraw(uint256 vaultId) external {
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
         _vaults[vaultId].isWithdrawing = true;
+
+        emit InitiatedWithdrawal(vaultId, msg.sender);
     }
 
     function withdraw(uint256 vaultId) external nonReentrant {
@@ -192,9 +205,6 @@ contract Cally is CallyNft, ReentrancyGuard, Test {
         require(vault.isWithdrawing, "Vault not in withdrawable state");
         require(block.timestamp > vault.currentExpiration, "Option still active");
 
-        // claim any ETH still in the account
-        harvest(vaultId);
-
         // burn option and vault
         uint256 optionId = vaultId + 1;
         _burn(optionId);
@@ -204,17 +214,21 @@ contract Cally is CallyNft, ReentrancyGuard, Test {
         vault.tokenType == TokenType.ERC721
             ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
+
+        // claim any ETH still in the account
+        harvest();
+
+        emit Withdrawal(vaultId, msg.sender);
     }
 
-    function harvest(uint256 vaultId) public returns (uint256 amount) {
-        address vaultOwner = ownerOf(vaultId);
-        require(msg.sender == vaultOwner, "You are not the owner");
-
+    function harvest() public returns (uint256 amount) {
         // reset premiums
-        amount = ethBalance[vaultOwner];
-        ethBalance[vaultOwner] = 0;
+        amount = ethBalance[msg.sender];
+        ethBalance[msg.sender] = 0;
 
         // transfer premiums to owner
         payable(msg.sender).safeTransferETH(amount);
+
+        emit Harvested(msg.sender, amount);
     }
 }

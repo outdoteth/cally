@@ -6,11 +6,20 @@ import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
 contract TestCreateVault is Test, Fixture {
+    event NewVault(uint256 indexed vaultId, address indexed from, address indexed token);
+
     function setUp() public {
         bayc.mint(address(this), 1);
         bayc.mint(address(this), 2);
         bayc.mint(address(this), 100);
         bayc.setApprovalForAll(address(c), true);
+    }
+
+    function testItEmitsNewVaultEvent() public {
+        // act
+        vm.expectEmit(true, true, true, false);
+        emit NewVault(3, address(this), address(bayc));
+        c.createVault(1, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
     }
 
     function testItSendsERC721ForCollateral() public {

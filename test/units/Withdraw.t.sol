@@ -7,6 +7,7 @@ import "src/Cally.sol";
 
 contract TestWithdraw is Fixture {
     event Transfer(address indexed from, address indexed to, uint256 indexed id);
+    event Withdrawal(uint256 indexed vaultId, address indexed from);
 
     uint256 internal tokenId;
     uint256 internal tokenAmount;
@@ -32,6 +33,17 @@ contract TestWithdraw is Fixture {
         uint8 strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
         vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
+    }
+
+    function testItEmitsWithdrawalEvent() public {
+        // arrange
+        c.initiateWithdraw(vaultId);
+        skip(1);
+        vm.expectEmit(true, true, false, false);
+        emit Withdrawal(vaultId, address(this));
+
+        // act
+        c.withdraw(vaultId);
     }
 
     function testItTransfersERC721BackToOwner() public {

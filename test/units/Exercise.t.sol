@@ -7,6 +7,7 @@ import "src/Cally.sol";
 
 contract TestExercise is Fixture {
     event Transfer(address indexed from, address indexed to, uint256 indexed id);
+    event ExercisedOption(uint256 indexed optionId, address indexed from);
 
     uint256 internal vaultId;
     uint256 internal strike;
@@ -38,6 +39,15 @@ contract TestExercise is Fixture {
         vm.stopPrank();
 
         optionId = c.buyOption{value: premium}(vaultId);
+    }
+
+    function testItEmitsExercisedEvent() public {
+        // arrange
+        vm.expectEmit(true, true, true, false);
+        emit ExercisedOption(optionId, address(this));
+
+        // act
+        c.exercise{value: strike}(optionId);
     }
 
     function testItShouldTransferERC721ToOptionOwner() public {

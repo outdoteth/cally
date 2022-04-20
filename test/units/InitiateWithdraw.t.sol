@@ -6,6 +6,8 @@ import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
 contract TestInitiateWithdraw is Fixture {
+    event InitiatedWithdrawal(uint256 indexed vaultId, address indexed from);
+
     uint256 internal vaultId;
     Cally.Vault internal vault;
 
@@ -14,6 +16,15 @@ contract TestInitiateWithdraw is Fixture {
         bayc.setApprovalForAll(address(c), true);
 
         vaultId = c.createVault(1, address(bayc), 1, 1, 1, 0, Cally.TokenType.ERC721);
+    }
+
+    function testItEmitsInitiateWithdrawalEvent() public {
+        // arrange
+        vm.expectEmit(true, true, false, false);
+        emit InitiatedWithdrawal(vaultId, address(this));
+
+        // act
+        c.initiateWithdraw(vaultId);
     }
 
     function testItMarksVaultAsWithdrawing() public {

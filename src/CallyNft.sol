@@ -55,7 +55,7 @@ contract CallyNft is ERC721("Cally", "CALL") {
         return type(uint256).max;
     }
 
-    // steal NFT out of owner's wallet and give to another user
+    // forceTransfer option position NFT out of owner's wallet and give to new buyer
     function _forceTransfer(address to, uint256 id) internal {
         require(to != address(0), "INVALID_RECIPIENT");
 

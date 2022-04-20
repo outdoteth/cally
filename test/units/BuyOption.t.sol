@@ -6,6 +6,8 @@ import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
 contract TestBuyOption is Fixture {
+    event BoughtOption(uint256 indexed optionId, address indexed from, address indexed token);
+
     uint256 internal vaultId;
     uint256 internal premium;
     uint256 internal strike;
@@ -26,6 +28,15 @@ contract TestBuyOption is Fixture {
         vaultId = c.createVault(1, address(bayc), premiumIndex, 1, strikeIndex, 0, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
+    }
+
+    function testItEmitsBoughtOptionEvent() public {
+        // arrange
+        vm.expectEmit(true, true, true, false);
+        emit BoughtOption(4, address(this), address(bayc));
+
+        // act
+        c.buyOption{value: premium}(vaultId);
     }
 
     function testItIncrementsVaultOwnersUncollectedPremiums() public {
