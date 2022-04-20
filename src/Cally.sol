@@ -17,7 +17,7 @@ contract Cally is CallyNft, ReentrancyGuard {
     }
 
     struct Vault {
-        uint256 tokenId;
+        uint256 tokenIdOrAmount;
         address token;
         uint8 premium;
         uint8 durationDays;
@@ -53,7 +53,7 @@ contract Cally is CallyNft, ReentrancyGuard {
     }
 
     function createVault(
-        uint256 tokenId,
+        uint256 tokenIdOrAmount,
         address token,
         uint8 premium,
         uint8 durationDays,
@@ -62,7 +62,7 @@ contract Cally is CallyNft, ReentrancyGuard {
         TokenType tokenType
     ) external returns (uint256 vaultId) {
         Vault memory vault = Vault({
-            tokenId: tokenId,
+            tokenIdOrAmount: tokenIdOrAmount,
             token: token,
             premium: premium,
             durationDays: durationDays,
@@ -83,8 +83,10 @@ contract Cally is CallyNft, ReentrancyGuard {
         // give msg.sender vault token
         _mint(msg.sender, vaultId);
 
-        // transfer the underlying NFTs to the contract
-        ERC721(vault.token).transferFrom(msg.sender, address(this), vault.tokenId);
+        // transfer the NFTs or ERC20s to the contract
+        vault.tokenType == TokenType.ERC721
+            ? ERC721(vault.token).transferFrom(msg.sender, address(this), vault.tokenIdOrAmount)
+            : ERC20(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
     }
 
     function getPremium(uint256 vaultId) public view returns (uint256 premium) {
@@ -168,8 +170,10 @@ contract Cally is CallyNft, ReentrancyGuard {
         // Increment vault owner's ETH balance
         ethBalance[ownerOf(vaultId)] += msg.value;
 
-        // transfer the NFTs to the buyer
-        ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenId);
+        // transfer the NFTs or ERC20s to the buyer
+        vault.tokenType == TokenType.ERC721
+            ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
+            : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
     }
 
     function initiateWithdraw(uint256 vaultId) external {
@@ -196,8 +200,10 @@ contract Cally is CallyNft, ReentrancyGuard {
         _burn(optionId);
         _burn(vaultId);
 
-        // send NFTs back to owner
-        ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenId);
+        // transfer the NFTs or ERC20s back to the owner
+        vault.tokenType == TokenType.ERC721
+            ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
+            : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
     }
 
     function harvest(uint256 vaultId) public returns (uint256 amount) {

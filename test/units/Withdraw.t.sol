@@ -9,6 +9,7 @@ contract TestWithdraw is Fixture {
     event Transfer(address indexed from, address indexed to, uint256 indexed id);
 
     uint256 internal tokenId;
+    uint256 internal tokenAmount;
     uint256 internal vaultId;
     uint256 internal premium;
     uint256 internal strike;
@@ -21,6 +22,10 @@ contract TestWithdraw is Fixture {
         tokenId = 100;
         bayc.mint(address(this), tokenId);
         bayc.setApprovalForAll(address(c), true);
+
+        tokenAmount = 1337;
+        link.mint(address(this), tokenAmount);
+        link.approve(address(c), type(uint256).max);
 
         uint8 premiumIndex = 1;
         premium = c.premiumOptions(premiumIndex);
@@ -42,6 +47,22 @@ contract TestWithdraw is Fixture {
         // assert
         assertEq(bayc.ownerOf(tokenId), address(this));
         assertEq(balanceAfter - balanceBefore, 1);
+    }
+
+    function testItTransfersERC20BackToOwner() public {
+        // arrange
+        vaultId = c.createVault(tokenAmount, address(link), 1, 1, 1, 0, Cally.TokenType.ERC20);
+        c.initiateWithdraw(vaultId);
+        skip(1);
+        uint256 balanceBefore = link.balanceOf(address(this));
+
+        // act
+        c.withdraw(vaultId);
+        uint256 balanceAfter = link.balanceOf(address(this));
+
+        // assert
+        assertEq(balanceAfter - balanceBefore, tokenAmount, "Should have transferred LINK to owner");
+        assertEq(link.balanceOf(address(c)), 0, "Should have transferred LINK from Cally");
     }
 
     function testItBurnsVaultERC721() public {

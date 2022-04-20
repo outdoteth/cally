@@ -22,6 +22,22 @@ contract TestCreateVault is Test, Fixture {
         assertEq(bayc.ownerOf(1), address(c), "Should have sent BAYC to Cally");
     }
 
+    function testItSendsERC20ForCollateral() public {
+        // arrange
+        uint256 amount = 1337;
+        link.mint(address(this), amount);
+        link.approve(address(c), amount);
+        uint256 balanceBefore = link.balanceOf(address(this));
+
+        // act
+        c.createVault(amount, address(link), 2, 1, 0, 0, Cally.TokenType.ERC20);
+        uint256 change = balanceBefore - link.balanceOf(address(this));
+
+        // assert
+        assertEq(link.balanceOf(address(c)), amount, "Should have sent LINK to Cally");
+        assertEq(change, amount, "Should have sent LINK from account");
+    }
+
     function testItMintsVaultERC721ToCreator() public {
         // act
         uint256 vaultId = c.createVault(1, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
@@ -53,7 +69,7 @@ contract TestCreateVault is Test, Fixture {
 
         // assert
         Cally.Vault memory vault = c.vaults(vaultId);
-        assertEq(vault.tokenId, tokenId, "Should have set tokenId");
+        assertEq(vault.tokenIdOrAmount, tokenId, "Should have set tokenId");
         assertEq(vault.token, token, "Should have set token");
         assertEq(vault.premium, premium, "Should have set premium");
         assertEq(vault.durationDays, durationDays, "Should have set durationDays");

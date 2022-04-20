@@ -12,20 +12,26 @@ contract TestExercise is Fixture {
     uint256 internal strike;
     uint256 internal optionId;
     uint256 internal tokenId;
+    uint256 internal tokenAmount;
+    uint256 internal premium;
     Cally.Vault internal vault;
 
     function setUp() public {
         // create vault for babe
         vm.startPrank(babe);
 
-        bayc.mint(babe, 1);
+        tokenId = 1;
+        bayc.mint(babe, tokenId);
         bayc.setApprovalForAll(address(c), true);
+
+        tokenAmount = 1337;
+        link.mint(babe, tokenAmount);
+        link.approve(address(c), type(uint256).max);
 
         uint8 strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
-        tokenId = 1;
         uint8 premiumIndex = 1;
-        uint256 premium = c.premiumOptions(premiumIndex);
+        premium = c.premiumOptions(premiumIndex);
 
         vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
@@ -44,6 +50,23 @@ contract TestExercise is Fixture {
         // assert
         assertEq(bayc.ownerOf(tokenId), address(this), "Should have transferred NFT to exerciser");
         assertEq(bayc.balanceOf(address(this)), balanceBefore + 1, "Should have transferred NFT to exerciser");
+    }
+
+    function testItShouldTransferERC20ToOptionOwner() public {
+        // arrange
+        vm.prank(babe);
+        vaultId = c.createVault(tokenAmount, address(link), 1, 1, 1, 0, Cally.TokenType.ERC20);
+        vault = c.vaults(vaultId);
+        optionId = c.buyOption{value: premium}(vaultId);
+        uint256 balanceBefore = link.balanceOf(address(this));
+
+        // act
+        c.exercise{value: strike}(optionId);
+        uint256 change = link.balanceOf(address(this)) - balanceBefore;
+
+        // assert
+        assertEq(change, tokenAmount, "Should have transferred LINK to exerciser");
+        assertEq(link.balanceOf(address(c)), 0, "Should have transferred LINK from Cally");
     }
 
     function testItIncrementsEthBalanceOfVaultOwner() public {
@@ -99,7 +122,7 @@ contract TestExercise is Fixture {
     }
 
     function testCannotExerciseOptionTwice() public {
-        // arrange
+        // arrangetestItShouldTransferERC721ToOptionOwner
         c.exercise{value: strike}(optionId);
 
         // act
