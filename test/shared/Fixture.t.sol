@@ -5,20 +5,26 @@ import "forge-std/Test.sol";
 
 import "../mocks/MockWeth.sol";
 import "../mocks/MockERC721.sol";
+import "../mocks/MockERC20.sol";
 
 import "src/Cally.sol";
 
 abstract contract Fixture is Test {
     Cally internal c;
     MockERC721 internal bayc;
+    MockERC20 internal link;
+    MockWeth internal weth;
 
     address internal babe;
     string internal checkpointLabel;
     uint256 internal checkpointGasLeft;
 
     constructor() {
-        c = new Cally("http://test/");
         bayc = new MockERC721("Mock Bored Ape Yacht Club", "MBAYC");
+        link = new MockERC20("Mock Chainlink", "LINK", 18);
+        weth = new MockWeth();
+
+        c = new Cally("http://test/", address(weth));
 
         babe = address(0xbabe);
         vm.label(babe, "Babe");

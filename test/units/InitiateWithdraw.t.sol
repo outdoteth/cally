@@ -6,14 +6,14 @@ import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
 contract TestInitiateWithdraw is Fixture {
-    uint256 vaultId;
+    uint256 internal vaultId;
     Cally.Vault internal vault;
 
     function setUp() public {
         bayc.mint(address(this), 1);
         bayc.setApprovalForAll(address(c), true);
 
-        vaultId = c.createVault(1, address(bayc), 1, 1, 1, 0);
+        vaultId = c.createVault(1, address(bayc), 1, 1, 1, 0, Cally.TokenType.ERC721);
     }
 
     function testItMarksVaultAsWithdrawing() public {

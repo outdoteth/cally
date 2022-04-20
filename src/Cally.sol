@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
+import "solmate/utils/SafeTransferLib.sol";
+import "solmate/utils/ReentrancyGuard.sol";
+
 import "./ICally.sol";
 import "./CallyNft.sol";
 
-import "solmate/utils/SafeTransferLib.sol";
-
-contract Cally is CallyNft {
+contract Cally is CallyNft, ReentrancyGuard {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address payable;
+
+    enum TokenType {
+        ERC721,
+        ERC20
+    }
 
     struct Vault {
         uint256 tokenId;
@@ -19,11 +25,13 @@ contract Cally is CallyNft {
         uint8 dutchAuctionEndingStrike;
         bool isExercised;
         bool isWithdrawing;
+        TokenType tokenType;
         uint32 currentExpiration;
         uint256 currentStrike;
     }
 
     uint32 public constant AUCTION_DURATION = 24 hours;
+    ERC20 public immutable weth;
 
     // prettier-ignore
     uint256[] public premiumOptions = [0.01 ether, 0.025 ether, 0.05 ether, 0.075 ether, 0.1 ether, 0.25 ether, 0.5 ether, 0.75 ether, 1.0 ether, 2.5 ether, 5.0 ether, 7.5 ether, 10 ether, 25 ether, 50 ether, 75 ether, 100 ether];
@@ -35,8 +43,9 @@ contract Cally is CallyNft {
     mapping(uint256 => Vault) private _vaults;
     mapping(address => uint256) public ethBalance;
 
-    constructor(string memory baseURI_) {
+    constructor(string memory baseURI_, address weth_) {
         baseURI = baseURI_;
+        weth = ERC20(weth_);
     }
 
     function vaults(uint256 vaultId) public view returns (Vault memory) {
@@ -49,7 +58,8 @@ contract Cally is CallyNft {
         uint8 premium,
         uint8 durationDays,
         uint8 dutchAuctionStartingStrike,
-        uint8 dutchAuctionEndingStrike
+        uint8 dutchAuctionEndingStrike,
+        TokenType tokenType
     ) external returns (uint256 vaultId) {
         Vault memory vault = Vault({
             tokenId: tokenId,
@@ -61,6 +71,7 @@ contract Cally is CallyNft {
             currentExpiration: uint32(block.timestamp),
             isExercised: false,
             isWithdrawing: false,
+            tokenType: tokenType,
             currentStrike: 0
         });
 
@@ -74,6 +85,11 @@ contract Cally is CallyNft {
 
         // transfer the underlying NFTs to the contract
         ERC721(vault.token).transferFrom(msg.sender, address(this), vault.tokenId);
+    }
+
+    function getPremium(uint256 vaultId) public view returns (uint256 premium) {
+        Vault memory vault = _vaults[vaultId];
+        return premiumOptions[vault.premium];
     }
 
     // strike decreases linearly to 0 over time starting at dutchAuctionStartingStrike
@@ -111,7 +127,7 @@ contract Cally is CallyNft {
         require(block.timestamp >= auctionStartTimestamp, "Auction not started");
 
         // check enough eth was sent to cover premium
-        uint256 premium = premiumOptions[vault.premium];
+        uint256 premium = getPremium(vaultId);
         require(msg.value == premium, "Incorrect ETH amount sent");
 
         // set new currentStrike and expiration
@@ -161,7 +177,7 @@ contract Cally is CallyNft {
         _vaults[vaultId].isWithdrawing = true;
     }
 
-    function withdraw(uint256 vaultId) external {
+    function withdraw(uint256 vaultId) external nonReentrant {
         // check owner
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
 
@@ -184,12 +200,12 @@ contract Cally is CallyNft {
         ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenId);
     }
 
-    function harvest(uint256 vaultId) public {
+    function harvest(uint256 vaultId) public returns (uint256 amount) {
         address vaultOwner = ownerOf(vaultId);
         require(msg.sender == vaultOwner, "You are not the owner");
 
         // reset premiums
-        uint256 amount = ethBalance[vaultOwner];
+        amount = ethBalance[vaultOwner];
         ethBalance[vaultOwner] = 0;
 
         // transfer premiums to owner

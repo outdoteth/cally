@@ -15,7 +15,7 @@ contract TestCreateVault is Test, Fixture {
 
     function testItSendsERC721ForCollateral() public {
         // act
-        c.createVault(1, address(bayc), 2, 1, 0, 0);
+        c.createVault(1, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
 
         // assert
         assertEq(bayc.balanceOf(address(c)), 1, "Should have sent BAYC to Cally");
@@ -24,7 +24,7 @@ contract TestCreateVault is Test, Fixture {
 
     function testItMintsVaultERC721ToCreator() public {
         // act
-        uint256 vaultId = c.createVault(1, address(bayc), 2, 1, 0, 0);
+        uint256 vaultId = c.createVault(1, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
 
         // assert
         assertEq(c.ownerOf(vaultId), address(this), "Should have minted vault token");
@@ -38,6 +38,7 @@ contract TestCreateVault is Test, Fixture {
         uint8 durationDays = 3;
         uint8 dutchAuctionStartingStrike = 3;
         uint8 dutchAuctionEndingStrike = 3;
+        Cally.TokenType tokenType = Cally.TokenType.ERC721;
 
         // act
         uint256 vaultId = c.createVault(
@@ -46,7 +47,8 @@ contract TestCreateVault is Test, Fixture {
             premium,
             durationDays,
             dutchAuctionStartingStrike,
-            dutchAuctionEndingStrike
+            dutchAuctionEndingStrike,
+            tokenType
         );
 
         // assert
@@ -57,11 +59,12 @@ contract TestCreateVault is Test, Fixture {
         assertEq(vault.durationDays, durationDays, "Should have set durationDays");
         assertEq(vault.dutchAuctionStartingStrike, dutchAuctionStartingStrike, "Should have set starting strike");
         assertEq(vault.dutchAuctionEndingStrike, dutchAuctionEndingStrike, "Should have set ending strike");
+        assertEq(uint8(vault.tokenType), uint8(tokenType), "Should have set tokenType");
     }
 
     function testItIncrementsVaultId() public {
         // act
-        uint256 vaultId = c.createVault(1, address(bayc), 2, 1, 0, 0);
+        uint256 vaultId = c.createVault(1, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
 
         // assert
         uint256 vaultIndex = c.vaultIndex();
@@ -71,9 +74,9 @@ contract TestCreateVault is Test, Fixture {
 
     function testItIncrementsVaultIdMultipleTimes() public {
         // act
-        uint256 vaultId1 = c.createVault(1, address(bayc), 2, 1, 0, 0);
-        uint256 vaultId2 = c.createVault(2, address(bayc), 2, 1, 0, 0);
-        uint256 vaultId3 = c.createVault(100, address(bayc), 2, 1, 0, 0);
+        uint256 vaultId1 = c.createVault(1, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
+        uint256 vaultId2 = c.createVault(2, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
+        uint256 vaultId3 = c.createVault(100, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
 
         // assert
         uint256 vaultIndex = c.vaultIndex();

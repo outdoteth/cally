@@ -26,7 +26,7 @@ contract TestWithdraw is Fixture {
         premium = c.premiumOptions(premiumIndex);
         uint8 strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
-        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0);
+        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
     }
 
     function testItTransfersERC721BackToOwner() public {

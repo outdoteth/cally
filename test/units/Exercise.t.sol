@@ -27,7 +27,7 @@ contract TestExercise is Fixture {
         uint8 premiumIndex = 1;
         uint256 premium = c.premiumOptions(premiumIndex);
 
-        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0);
+        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
 

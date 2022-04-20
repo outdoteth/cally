@@ -27,7 +27,7 @@ contract TestHarvest is Fixture {
         uint8 premiumIndex = 1;
         uint256 premium = c.premiumOptions(premiumIndex);
 
-        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0);
+        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
 
         vm.startPrank(babe);
@@ -63,5 +63,16 @@ contract TestHarvest is Fixture {
         // act
         vm.expectRevert("You are not the owner");
         c.harvest(vaultId);
+    }
+
+    function testItReturnsAmount() public {
+        // arrange
+        uint256 expectedAmount = c.ethBalance(address(this));
+
+        // act
+        uint256 amount = c.harvest(vaultId);
+
+        // assert
+        assertEq(amount, expectedAmount, "Should have returned amount");
     }
 }
