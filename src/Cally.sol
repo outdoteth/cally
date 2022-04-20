@@ -7,7 +7,9 @@ import "solmate/utils/ReentrancyGuard.sol";
 import "./ICally.sol";
 import "./CallyNft.sol";
 
-contract Cally is CallyNft, ReentrancyGuard {
+import "forge-std/Test.sol";
+
+contract Cally is CallyNft, ReentrancyGuard, Test {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address payable;
 
@@ -94,25 +96,20 @@ contract Cally is CallyNft, ReentrancyGuard {
         return premiumOptions[vault.premium];
     }
 
-    // strike decreases linearly to 0 over time starting at dutchAuctionStartingStrike
-    function getDutchAuctionStrike(uint256 vaultId) public view returns (uint256 currentStrike) {
-        Vault memory vault = _vaults[vaultId];
-
-        // TODO: change this
+    // strike decreases exponentially to 0 over time starting at dutchAuctionStartingStrike
+    function getDutchAuctionStrike(uint256 startingStrike, uint32 auctionEndTimestamp)
+        public
+        view
+        returns (uint256 strike)
+    {
         /*
             delta = auctionEnd - currentTimestamp
             progress = delta / auctionDuration
             strike = progress^2 * startingStrike
         */
-
-        // strike = (startingStrike * max(end - current, 0)) / auctionDuration
-        uint32 auctionEndTimestamp = vault.currentExpiration + AUCTION_DURATION;
-        uint256 startingStrike = strikeOptions[vault.dutchAuctionStartingStrike];
-        uint32 delta = uint32(block.timestamp) < auctionEndTimestamp
-            ? auctionEndTimestamp - uint32(block.timestamp)
-            : 0;
-
-        currentStrike = (startingStrike * delta) / AUCTION_DURATION;
+        uint256 delta = auctionEndTimestamp > block.timestamp ? auctionEndTimestamp - block.timestamp : 0;
+        uint256 progress = (1e18 * delta) / AUCTION_DURATION;
+        strike = (progress * progress * startingStrike) / (1e18 * 1e18);
     }
 
     function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
@@ -133,8 +130,11 @@ contract Cally is CallyNft, ReentrancyGuard {
         require(msg.value == premium, "Incorrect ETH amount sent");
 
         // set new currentStrike and expiration
+        vault.currentStrike = getDutchAuctionStrike(
+            strikeOptions[vault.dutchAuctionStartingStrike],
+            vault.currentExpiration + AUCTION_DURATION
+        );
         vault.currentExpiration = uint32(block.timestamp) + (vault.durationDays * 1 days);
-        vault.currentStrike = getDutchAuctionStrike(vaultId);
         _vaults[vaultId] = vault;
 
         // force transfer the expired option from old owner to new owner

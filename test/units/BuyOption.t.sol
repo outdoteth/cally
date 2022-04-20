@@ -23,7 +23,7 @@ contract TestBuyOption is Fixture {
         uint8 strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
 
-        vaultId = c.createVault(1, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
+        vaultId = c.createVault(1, address(bayc), premiumIndex, 1, strikeIndex, 0, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
     }
@@ -65,7 +65,41 @@ contract TestBuyOption is Fixture {
     }
 
     function testItSetsStrikeToCurrentDutchAuctionPrice() public {
-        // TODO: test this after changing to curve
+        // arrange
+        uint256 expectedStrike = strike;
+
+        // act
+        c.buyOption{value: premium}(vaultId);
+        strike = c.vaults(vaultId).currentStrike;
+
+        // assert
+        assertEq(strike, expectedStrike, "Incorrect strike");
+    }
+
+    function testItSetsStrikeToCurrentDutchAuctionPriceAfterElapsedTime() public {
+        // arrange
+        skip(0.5 days);
+        uint256 expectedStrike = strike / 4; // 0.5^2 * strike == strike / 4
+
+        // act
+        c.buyOption{value: premium}(vaultId);
+        strike = c.vaults(vaultId).currentStrike;
+
+        // assert
+        assertEq(strike, expectedStrike, "Incorrect strike");
+    }
+
+    function testItSetsStrikeTo0AfterAuctionEnd() public {
+        // arrange
+        skip(1.1 days);
+        uint256 expectedStrike = 0;
+
+        // act
+        c.buyOption{value: premium}(vaultId);
+        strike = c.vaults(vaultId).currentStrike;
+
+        // assert
+        assertEq(strike, expectedStrike, "Incorrect strike");
     }
 
     function testItUpdatesExpiration() public {
