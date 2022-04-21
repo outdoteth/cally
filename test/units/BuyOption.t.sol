@@ -176,4 +176,10 @@ contract TestBuyOption is Fixture {
         // assert
         assertEq(bobEthBalance, premium, "Should have credited premium to beneficiary (bob)");
     }
+
+    function testItOnlyBuysValidFromValidVaultId() public {
+        // act
+        vm.expectRevert("Not vault type");
+        c.buyOption{value: premium}(2);
+    }
 }

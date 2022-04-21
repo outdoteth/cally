@@ -27,7 +27,7 @@ import "openzeppelin/access/Ownable.sol";
 import "./ICally.sol";
 import "./CallyNft.sol";
 
-/// @title Putty - https://cally.finance
+/// @title Cally - https://cally.finance
 /// @author out.eth
 /// @notice NFT & ERC20 covered call vaults
 contract Cally is CallyNft, ReentrancyGuard, Ownable {
@@ -157,6 +157,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint8 dutchAuctionStartingStrike,
         TokenType tokenType
     ) external returns (uint256 vaultId) {
+        require(premium < premiumOptions.length, "Invalid premium index");
+        require(dutchAuctionStartingStrike < strikeOptions.length, "Invalid strike index");
+        require(durationDays > 0, "Invalid durationDays");
+
         Vault memory vault = Vault({
             tokenIdOrAmount: tokenIdOrAmount,
             token: token,
@@ -187,10 +191,17 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     }
 
     /// @notice Buys an option from a vault at a fixed premium and variable strike
-    ///         which is dependent on the dutch auction. Premium is sent to vault beneficiary.
+    ///         which is dependent on the dutch auction. Premium is credited to
+    ///         vault beneficiary.
     /// @param vaultId The tokenId of the vault to buy the option from
     function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
         Vault memory vault = _vaults[vaultId];
+
+        // vaultId should always be odd
+        require(vaultId % 2 != 0, "Not vault type");
+
+        // check vault exists
+        require(ownerOf(vaultId) != address(0), "Vault does not exist");
 
         // check that the vault still has the NFTs as collateral
         require(vault.isExercised == false, "Vault already exercised");
@@ -230,6 +241,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     ///         exerciser and the strike ETH to the vault beneficiary.
     /// @param optionId The tokenId of the option to exercise
     function exercise(uint256 optionId) external payable {
+        // optionId should always be even
+        require(optionId % 2 == 0, "Not option type");
+
         // check owner
         require(msg.sender == ownerOf(optionId), "You are not the owner");
 
@@ -271,7 +285,12 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     ///         another call once the currently active call option has expired.
     /// @param vaultId The tokenId of the vault to initiate a withdrawal on
     function initiateWithdraw(uint256 vaultId) external {
+        // vaultId should always be odd
+        require(vaultId % 2 != 0, "Not vault type");
+
+        // check msg.sender owns the vault
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
+
         _vaults[vaultId].isWithdrawing = true;
 
         emit InitiatedWithdrawal(vaultId, msg.sender);
@@ -281,6 +300,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     ///         unharvested premiums. Vault and it's associated option NFT are burned.
     /// @param vaultId The tokenId of the vault to withdraw
     function withdraw(uint256 vaultId) external nonReentrant {
+        // vaultId should always be odd
+        require(vaultId % 2 != 0, "Not vault type");
+
         // check owner
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
 

@@ -44,4 +44,10 @@ contract TestInitiateWithdraw is Fixture {
         vm.expectRevert("You are not the owner");
         c.initiateWithdraw(vaultId);
     }
+
+    function testCannotInitiateWithdrawalForInvalidVaultId() public {
+        // act
+        vm.expectRevert("Not vault type");
+        c.initiateWithdraw(vaultId + 1);
+    }
 }

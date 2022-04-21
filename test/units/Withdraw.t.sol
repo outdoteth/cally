@@ -161,4 +161,9 @@ contract TestWithdraw is Fixture {
         vm.expectRevert("NOT_MINTED");
         c.withdraw(vaultId);
     }
+
+    function testCannotInitiateWithdrawalForInvalidVaultId() public {
+        vm.expectRevert("Not vault type");
+        c.withdraw(vaultId - 1);
+    }
 }

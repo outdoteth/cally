@@ -1,14 +1,15 @@
-# <h1 align="center"> Forge Template </h1>
+# Cally
 
-**Template repository for getting started quickly with Foundry projects**
+**NFT and ERC20 covered call vaults**
 
 ![Github Actions](https://github.com/foundry-rs/forge-template/workflows/Tests/badge.svg)
 
-## Getting Started
+## Installation
 
 Click `use this template` on [Github](https://github.com/foundry-rs/forge-template) to create a new repository with this repo as the initial state.
 
 Or, if your repo already exists, run:
+
 ```sh
 forge init
 forge build
@@ -25,13 +26,14 @@ pragma solidity 0.8.10;
 import "forge-std/Test.sol";
 
 contract ContractTest is Test {
-    function testExample() public {
-        vm.roll(100);
-        console.log(1);
-        emit log("hi");
-        assertTrue(true);
-    }
+  function testExample() public {
+    vm.roll(100);
+    console.log(1);
+    emit log("hi");
+    assertTrue(true);
+  }
 }
+
 ```
 
 ## Development

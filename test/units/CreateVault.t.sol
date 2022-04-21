@@ -100,4 +100,22 @@ contract TestCreateVault is Test, Fixture {
         assertEq(vaultId2, 5, "Should have incremented vaultId by 2");
         assertEq(vaultId3, 7, "Should have incremented vaultId by 2");
     }
+
+    function testItCannotCreateVaultWithInvalidPremium() public {
+        // act
+        vm.expectRevert("Invalid premium index");
+        c.createVault(1, address(bayc), 150, 1, 0, Cally.TokenType.ERC721);
+    }
+
+    function testItCannotCreateVaultWithInvalidStrike() public {
+        // act
+        vm.expectRevert("Invalid strike index");
+        c.createVault(1, address(bayc), 1, 12, 150, Cally.TokenType.ERC721);
+    }
+
+    function testItCannotCreateVaultWithInvalidDurationDays() public {
+        // act
+        vm.expectRevert("Invalid durationDays");
+        c.createVault(1, address(bayc), 1, 0, 1, Cally.TokenType.ERC721);
+    }
 }

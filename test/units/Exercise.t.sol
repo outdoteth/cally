@@ -152,4 +152,10 @@ contract TestExercise is Fixture {
         // assert
         assertEq(bobEthBalance, strike, "Should have credited strike to beneficiary (bob)");
     }
+
+    function testCannotExerciseInvalidOptionId() public {
+        // act
+        vm.expectRevert("Not option type");
+        c.exercise{value: strike}(optionId - 1);
+    }
 }
