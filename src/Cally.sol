@@ -101,7 +101,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     mapping(address => uint256) public ethBalance;
 
     constructor(string memory baseURI_, address weth_) {
-        baseURI = baseURI_;
         weth = ERC20(weth_);
     }
 
@@ -429,5 +428,26 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         delete getApproved[id];
 
         emit Transfer(from, to, id);
+    }
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_ownerOf[tokenId] != address(0), "URI query for NOT_MINTED token");
+
+        bool isVaultToken = tokenId % 2 != 0;
+        Vault memory vault = _vaults[isVaultToken ? tokenId : tokenId - 1];
+
+        string memory jsonStr = renderJson(
+            vault.token,
+            vault.tokenIdOrAmount,
+            getPremium(vault.premium),
+            vault.durationDays,
+            vault.dutchAuctionStartingStrike,
+            vault.currentExpiration,
+            vault.currentStrike,
+            vault.isExercised,
+            isVaultToken
+        );
+
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(bytes(jsonStr))));
     }
 }
