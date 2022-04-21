@@ -182,4 +182,16 @@ contract TestBuyOption is Fixture {
         vm.expectRevert("Not vault type");
         c.buyOption{value: premium}(2);
     }
+
+    function testItBuysOption(uint256 vaultId) public {
+        // arrange
+        vm.assume(vaultId % 2 != 0);
+        vm.assume(c.vaults(vaultId).currentExpiration > 0);
+
+        // act
+        uint256 optionId = c.buyOption{value: premium}(vaultId);
+
+        // assert
+        assertEq(optionId, vaultId + 1, "Option ID should be 1 less thn vault ID");
+    }
 }

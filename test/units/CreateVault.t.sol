@@ -118,4 +118,32 @@ contract TestCreateVault is Test, Fixture {
         vm.expectRevert("Invalid durationDays");
         c.createVault(1, address(bayc), 1, 0, 1, Cally.TokenType.ERC721);
     }
+
+    function testItCreatesVault(
+        uint8 premium,
+        uint8 durationDays,
+        uint8 dutchAuctionStartingStrike
+    ) public {
+        vm.assume(premium < 17);
+        vm.assume(durationDays > 0);
+        vm.assume(dutchAuctionStartingStrike < 19);
+
+        // act
+        uint256 vaultId = c.createVault(
+            1,
+            address(bayc),
+            premium,
+            durationDays,
+            dutchAuctionStartingStrike,
+            Cally.TokenType.ERC721
+        );
+
+        // assert
+        Cally.Vault memory vault = c.vaults(vaultId);
+        assertEq(vault.tokenIdOrAmount, 1, "Should have set tokenId");
+        assertEq(vault.token, address(bayc), "Should have set token");
+        assertEq(vault.premium, premium, "Should have set premium");
+        assertEq(vault.durationDays, durationDays, "Should have set durationDays");
+        assertEq(vault.dutchAuctionStartingStrike, dutchAuctionStartingStrike, "Should have set starting strike");
+    }
 }

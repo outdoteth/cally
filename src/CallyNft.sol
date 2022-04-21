@@ -9,6 +9,10 @@ import "solmate/tokens/ERC721.sol";
 contract CallyNft is ERC721("Cally", "CALL") {
     string public baseURI;
 
+    function exists(uint256 id) public view returns (bool) {
+        return _ownerOf[id] != address(0);
+    }
+
     // remove balanceOf modifications
     function _mint(address to, uint256 id) internal override {
         require(to != address(0), "INVALID_RECIPIENT");
