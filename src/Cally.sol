@@ -51,6 +51,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     uint256 public vaultIndex = 1;
 
     mapping(uint256 => Vault) private _vaults;
+    mapping(uint256 => address) private _vaultBeneficiaries;
     mapping(address => uint256) public ethBalance;
 
     constructor(string memory baseURI_, address weth_) {
@@ -66,6 +67,45 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         amount = protocolUnclaimedFees;
         protocolUnclaimedFees = 0;
         payable(msg.sender).safeTransferETH(amount);
+    }
+
+    function setVaultBeneficiary(uint256 vaultId, address beneficiary) public {
+        // vaultId's should always be odd
+        require(vaultId % 2 != 0, "Not vault type");
+        require(msg.sender == ownerOf(vaultId), "Not owner");
+
+        _vaultBeneficiaries[vaultId] = beneficiary;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public override {
+        require(from == _ownerOf[id], "WRONG_FROM");
+        require(to != address(0), "INVALID_RECIPIENT");
+        require(
+            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
+            "NOT_AUTHORIZED"
+        );
+
+        // reset the beneficiary
+        bool isVaultToken = id % 2 != 0;
+        if (isVaultToken) {
+            _vaultBeneficiaries[id] = address(0);
+        }
+
+        _ownerOf[id] = to;
+        delete getApproved[id];
+
+        emit Transfer(from, to, id);
+    }
+
+    function getVaultBeneficiary(uint256 vaultId) public view returns (address beneficiary) {
+        address currentBeneficiary = _vaultBeneficiaries[vaultId];
+
+        // return the current owner if vault beneficiary is not set
+        return currentBeneficiary == address(0) ? ownerOf(vaultId) : currentBeneficiary;
     }
 
     function vaults(uint256 vaultId) public view returns (Vault memory) {
@@ -162,9 +202,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         optionId = vaultId + 1;
         _forceTransfer(msg.sender, optionId);
 
-        // increment vault owner's unclaimed premiums
-        address vaultOwner = ownerOf(vaultId);
-        ethBalance[vaultOwner] += msg.value;
+        // increment vault beneficiary's unclaimed premiums
+        address beneficiary = getVaultBeneficiary(vaultId);
+        ethBalance[beneficiary] += msg.value;
 
         emit BoughtOption(optionId, msg.sender, vault.token);
     }
@@ -196,8 +236,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
             protocolUnclaimedFees += fee;
         }
 
-        // increment vault owner's ETH balance
-        ethBalance[ownerOf(vaultId)] += msg.value - fee;
+        // increment vault beneficiary's ETH balance
+        ethBalance[getVaultBeneficiary(vaultId)] += msg.value - fee;
 
         // transfer the NFTs or ERC20s to the buyer
         vault.tokenType == TokenType.ERC721

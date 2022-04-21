@@ -10,25 +10,6 @@ contract CallyNft is ERC721("Cally", "CALL") {
     string public baseURI;
 
     // remove balanceOf modifications
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public override {
-        require(from == _ownerOf[id], "WRONG_FROM");
-        require(to != address(0), "INVALID_RECIPIENT");
-        require(
-            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
-            "NOT_AUTHORIZED"
-        );
-
-        _ownerOf[id] = to;
-        delete getApproved[id];
-
-        emit Transfer(from, to, id);
-    }
-
-    // remove balanceOf modifications
     function _mint(address to, uint256 id) internal override {
         require(to != address(0), "INVALID_RECIPIENT");
         require(_ownerOf[id] == address(0), "ALREADY_MINTED");

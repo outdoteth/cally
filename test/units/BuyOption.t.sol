@@ -163,4 +163,17 @@ contract TestBuyOption is Fixture {
         vm.expectRevert("Auction not started");
         c.buyOption{value: premium}(vaultId);
     }
+
+    function testItCreditsPremiumToBeneficiary() public {
+        // arrange
+        vm.prank(babe);
+        c.setVaultBeneficiary(vaultId, bob);
+
+        // act
+        c.buyOption{value: premium}(vaultId);
+        uint256 bobEthBalance = c.ethBalance(bob);
+
+        // assert
+        assertEq(bobEthBalance, premium, "Should have credited premium to beneficiary (bob)");
+    }
 }

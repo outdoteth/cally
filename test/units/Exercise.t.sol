@@ -132,11 +132,24 @@ contract TestExercise is Fixture {
     }
 
     function testCannotExerciseOptionTwice() public {
-        // arrangetestItShouldTransferERC721ToOptionOwner
+        // arrange
         c.exercise{value: strike}(optionId);
 
         // act
         vm.expectRevert("NOT_MINTED");
         c.exercise{value: strike}(optionId);
+    }
+
+    function testItCreditsStrikeToBeneficiary() public {
+        // arrange
+        vm.prank(babe);
+        c.setVaultBeneficiary(vaultId, bob);
+
+        // act
+        c.exercise{value: strike}(optionId);
+        uint256 bobEthBalance = c.ethBalance(bob);
+
+        // assert
+        assertEq(bobEthBalance, strike, "Should have credited strike to beneficiary (bob)");
     }
 }
