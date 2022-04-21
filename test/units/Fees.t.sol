@@ -31,7 +31,7 @@ contract TestFees is Test, Fixture {
         uint8 premiumIndex = 1;
         premium = c.premiumOptions(premiumIndex);
 
-        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
+        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
 

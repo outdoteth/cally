@@ -25,7 +25,7 @@ contract TestBuyOption is Fixture {
         uint8 strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
 
-        vaultId = c.createVault(1, address(bayc), premiumIndex, 1, strikeIndex, 0, Cally.TokenType.ERC721);
+        vaultId = c.createVault(1, address(bayc), premiumIndex, 1, strikeIndex, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
     }

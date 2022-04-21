@@ -32,7 +32,7 @@ contract TestWithdraw is Fixture {
         premium = c.premiumOptions(premiumIndex);
         uint8 strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
-        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
+        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, Cally.TokenType.ERC721);
     }
 
     function testItEmitsWithdrawalEvent() public {
@@ -63,7 +63,7 @@ contract TestWithdraw is Fixture {
 
     function testItTransfersERC20BackToOwner() public {
         // arrange
-        vaultId = c.createVault(tokenAmount, address(link), 1, 1, 1, 0, Cally.TokenType.ERC20);
+        vaultId = c.createVault(tokenAmount, address(link), 1, 1, 1, Cally.TokenType.ERC20);
         c.initiateWithdraw(vaultId);
         skip(1);
         uint256 balanceBefore = link.balanceOf(address(this));

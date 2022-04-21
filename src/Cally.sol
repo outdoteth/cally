@@ -1,6 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
+/**
+
+
+    ██████╗ █████╗  ██╗     ██╗  ██╗   ██╗
+    ██╔════╝██╔══██╗██║     ██║  ╚██╗ ██╔╝
+    ██║     ███████║██║     ██║   ╚████╔╝ 
+    ██║     ██╔══██║██║     ██║    ╚██╔╝  
+    ╚██████╗██║  ██║███████╗███████╗██║   
+     ╚═════╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝   
+                                      
+
+    
+    NFT & ERC20 covered call vaults.
+    this is intended to be a public good.
+    pog pog pog.
+
+
+*/
+
 import "solmate/utils/SafeTransferLib.sol";
 import "solmate/utils/ReentrancyGuard.sol";
 import "openzeppelin/access/Ownable.sol";
@@ -8,15 +27,43 @@ import "openzeppelin/access/Ownable.sol";
 import "./ICally.sol";
 import "./CallyNft.sol";
 
+/// @title Putty - https://cally.finance
+/// @author out.eth
+/// @notice NFT & ERC20 covered call vaults
 contract Cally is CallyNft, ReentrancyGuard, Ownable {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address payable;
 
+    /// @notice Fires when a new vault has been created
+    /// @param vaultId The newly minted vault NFT
+    /// @param from The account that created the vault
+    /// @param token The token address of the underlying asset
     event NewVault(uint256 indexed vaultId, address indexed from, address indexed token);
+
+    /// @notice Fires when an option has been bought from a vault
+    /// @param optionId The newly minted option NFT
+    /// @param from The account that bought the option
+    /// @param token The token address of the underlying asset
     event BoughtOption(uint256 indexed optionId, address indexed from, address indexed token);
+
+    /// @notice Fires when an option is exercised
+    /// @param optionId The option NFT which is being exercised
+    /// @param from The account that exercised the option
     event ExercisedOption(uint256 indexed optionId, address indexed from);
+
+    /// @notice Fires when someone harvests their ETH balance
+    /// @param from The account that exercised the option
+    /// @param amount The amount of ETH which was harvested
     event Harvested(address indexed from, uint256 amount);
+
+    /// @notice Fires when someone initiates a withdrawal on their vault
+    /// @param vaultId The vault NFT which is being withdrawn
+    /// @param from The account that is initiating the withdrawal
     event InitiatedWithdrawal(uint256 indexed vaultId, address indexed from);
+
+    /// @notice Fires when someone withdraws their vault
+    /// @param vaultId The vault NFT which is being withdrawn
+    /// @param from The account that is withdrawing
     event Withdrawal(uint256 indexed vaultId, address indexed from);
 
     enum TokenType {
@@ -30,7 +77,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint8 premium;
         uint8 durationDays;
         uint8 dutchAuctionStartingStrike;
-        uint8 dutchAuctionEndingStrike;
         bool isExercised;
         bool isWithdrawing;
         TokenType tokenType;
@@ -59,66 +105,56 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         weth = ERC20(weth_);
     }
 
-    function setFee(uint256 feeRate_) public onlyOwner {
+    /*********************
+        ADMIN FUNCTIONS
+    **********************/
+
+    /// @notice Sets the fee that is applied on exercised
+    /// @param feeRate_ The new fee rate: fee = 1% = (1 / 100) * 1e18
+    function setFee(uint256 feeRate_) external onlyOwner {
         feeRate = feeRate_;
     }
 
-    function withdrawProtocolFees() public onlyOwner returns (uint256 amount) {
+    /// @notice Withdraws the protocol fees and sends to current owner
+    function withdrawProtocolFees() external onlyOwner returns (uint256 amount) {
         amount = protocolUnclaimedFees;
         protocolUnclaimedFees = 0;
         payable(msg.sender).safeTransferETH(amount);
     }
 
-    function setVaultBeneficiary(uint256 vaultId, address beneficiary) public {
-        // vaultId's should always be odd
-        require(vaultId % 2 != 0, "Not vault type");
-        require(msg.sender == ownerOf(vaultId), "Not owner");
+    /**************************
+        MAIN LOGIC FUNCTIONS
+    ***************************/
 
-        _vaultBeneficiaries[vaultId] = beneficiary;
-    }
+    /*
+        standard lifecycle:
+            createVault
+            buyOption
+            exercise
+            initiateWithdraw
+            withdraw
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public override {
-        require(from == _ownerOf[id], "WRONG_FROM");
-        require(to != address(0), "INVALID_RECIPIENT");
-        require(
-            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
-            "NOT_AUTHORIZED"
-        );
+        [*] setVaultBeneficiary
+        [*] harvest
 
-        // reset the beneficiary
-        bool isVaultToken = id % 2 != 0;
-        if (isVaultToken) {
-            _vaultBeneficiaries[id] = address(0);
-        }
+        [*] can be called anytime in lifecycle
+    */
 
-        _ownerOf[id] = to;
-        delete getApproved[id];
-
-        emit Transfer(from, to, id);
-    }
-
-    function getVaultBeneficiary(uint256 vaultId) public view returns (address beneficiary) {
-        address currentBeneficiary = _vaultBeneficiaries[vaultId];
-
-        // return the current owner if vault beneficiary is not set
-        return currentBeneficiary == address(0) ? ownerOf(vaultId) : currentBeneficiary;
-    }
-
-    function vaults(uint256 vaultId) public view returns (Vault memory) {
-        return _vaults[vaultId];
-    }
-
+    /// @notice Creates a new vault that perpetually sells calls
+    ///         on the underlying assets.
+    /// @param tokenIdOrAmount The tokenId (NFT) or amount (ERC20) to vault
+    /// @param token The address of the NFT or ERC20 contract to vault
+    /// @param tokenIdOrAmount The tokenId (NFT) or amount (ERC20) to vault
+    /// @param premium The price of each call that is sold
+    /// @param durationDays The length/duration of each call that is sold
+    /// @param dutchAuctionStartingStrike The starting strike for each dutch auction
+    /// @param tokenType The type of the underlying asset (NFT or ERC20)
     function createVault(
         uint256 tokenIdOrAmount,
         address token,
         uint8 premium,
         uint8 durationDays,
         uint8 dutchAuctionStartingStrike,
-        uint8 dutchAuctionEndingStrike,
         TokenType tokenType
     ) external returns (uint256 vaultId) {
         Vault memory vault = Vault({
@@ -127,7 +163,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
             premium: premium,
             durationDays: durationDays,
             dutchAuctionStartingStrike: dutchAuctionStartingStrike,
-            dutchAuctionEndingStrike: dutchAuctionEndingStrike,
             currentExpiration: uint32(block.timestamp),
             isExercised: false,
             isWithdrawing: false,
@@ -151,27 +186,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         emit NewVault(vaultId, msg.sender, token);
     }
 
-    function getPremium(uint256 vaultId) public view returns (uint256 premium) {
-        Vault memory vault = _vaults[vaultId];
-        return premiumOptions[vault.premium];
-    }
-
-    // strike decreases exponentially to 0 over time starting at dutchAuctionStartingStrike
-    function getDutchAuctionStrike(uint256 startingStrike, uint32 auctionEndTimestamp)
-        public
-        view
-        returns (uint256 strike)
-    {
-        /*
-            delta = auctionEnd - currentTimestamp
-            progress = delta / auctionDuration
-            strike = progress^2 * startingStrike
-        */
-        uint256 delta = auctionEndTimestamp > block.timestamp ? auctionEndTimestamp - block.timestamp : 0;
-        uint256 progress = (1e18 * delta) / AUCTION_DURATION;
-        strike = (progress * progress * startingStrike) / (1e18 * 1e18);
-    }
-
+    /// @notice Buys an option from a vault at a fixed premium and variable strike
+    ///         which is dependent on the dutch auction. Premium is sent to vault beneficiary.
+    /// @param vaultId The tokenId of the vault to buy the option from
     function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
         Vault memory vault = _vaults[vaultId];
 
@@ -209,6 +226,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         emit BoughtOption(optionId, msg.sender, vault.token);
     }
 
+    /// @notice Exercises a call option and sends the underlying assets to the
+    ///         exerciser and the strike ETH to the vault beneficiary.
+    /// @param optionId The tokenId of the option to exercise
     function exercise(uint256 optionId) external payable {
         // check owner
         require(msg.sender == ownerOf(optionId), "You are not the owner");
@@ -247,6 +267,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         emit ExercisedOption(optionId, msg.sender);
     }
 
+    /// @notice Initiates a withdrawal so that the vault will no longer sell
+    ///         another call once the currently active call option has expired.
+    /// @param vaultId The tokenId of the vault to initiate a withdrawal on
     function initiateWithdraw(uint256 vaultId) external {
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
         _vaults[vaultId].isWithdrawing = true;
@@ -254,6 +277,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         emit InitiatedWithdrawal(vaultId, msg.sender);
     }
 
+    /// @notice Sends the underlying assets back to the vault owner and claims any
+    ///         unharvested premiums. Vault and it's associated option NFT are burned.
+    /// @param vaultId The tokenId of the vault to withdraw
     function withdraw(uint256 vaultId) external nonReentrant {
         // check owner
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
@@ -281,6 +307,18 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         emit Withdrawal(vaultId, msg.sender);
     }
 
+    /// @notice Sets the vault beneficiary who will receive premiums/strike ETH
+    /// @param vaultId The tokenId of the vault to update
+    /// @param beneficiary The new vault beneficiary
+    function setVaultBeneficiary(uint256 vaultId, address beneficiary) external {
+        // vaultId's should always be odd
+        require(vaultId % 2 != 0, "Not vault type");
+        require(msg.sender == ownerOf(vaultId), "Not owner");
+
+        _vaultBeneficiaries[vaultId] = beneficiary;
+    }
+
+    /// @notice Sends any unclaimed ETH (premiums/strike) to the msg.sender
     function harvest() public returns (uint256 amount) {
         // reset premiums
         amount = ethBalance[msg.sender];
@@ -290,5 +328,84 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         payable(msg.sender).safeTransferETH(amount);
 
         emit Harvested(msg.sender, amount);
+    }
+
+    /**********************
+        GETTER FUNCTIONS
+    ***********************/
+
+    /// @notice Get the current beneficiary for a vault
+    /// @param vaultId The tokenId of the vault to fetch the beneficiary for
+    /// @return beneficiary The beneficiary for the vault
+    function getVaultBeneficiary(uint256 vaultId) public view returns (address beneficiary) {
+        address currentBeneficiary = _vaultBeneficiaries[vaultId];
+
+        // return the current owner if vault beneficiary is not set
+        return currentBeneficiary == address(0) ? ownerOf(vaultId) : currentBeneficiary;
+    }
+
+    /// @notice Get details for a vault
+    /// @param vaultId The tokenId of the vault to fetch the details for
+    function vaults(uint256 vaultId) public view returns (Vault memory) {
+        return _vaults[vaultId];
+    }
+
+    /// @notice Get the fixed option premium for a vault
+    /// @param vaultId The tokenId of the vault to fetch the premium for
+    /// @return premium The premium for the vault
+    function getPremium(uint256 vaultId) public view returns (uint256 premium) {
+        Vault memory vault = _vaults[vaultId];
+        return premiumOptions[vault.premium];
+    }
+
+    /// @notice Get the current dutch auction strike for a start value and end
+    ///         timestamp. Strike decreases exponentially to 0 over time starting
+    ///         at dutchAuctionStartingStrike.
+    /// @param startingStrike The starting strike value
+    /// @param auctionEndTimestamp The unix timestamp when the auction ends
+    /// @return strike The strike
+    function getDutchAuctionStrike(uint256 startingStrike, uint32 auctionEndTimestamp)
+        public
+        view
+        returns (uint256 strike)
+    {
+        /*
+            delta = auctionEnd - currentTimestamp
+            progress = delta / auctionDuration
+            strike = progress^2 * startingStrike
+        */
+        uint256 delta = auctionEndTimestamp > block.timestamp ? auctionEndTimestamp - block.timestamp : 0;
+        uint256 progress = (1e18 * delta) / AUCTION_DURATION;
+        strike = (progress * progress * startingStrike) / (1e18 * 1e18);
+    }
+
+    /*************************
+        OVVERIDES FUNCTIONS
+    **************************/
+
+    /// @dev Resets the beneficiary address when transferring vault NFTs.
+    ///      The new beneficiary will be the account receiving the vault NFT.
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public override {
+        require(from == _ownerOf[id], "WRONG_FROM");
+        require(to != address(0), "INVALID_RECIPIENT");
+        require(
+            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
+            "NOT_AUTHORIZED"
+        );
+
+        // reset the beneficiary
+        bool isVaultToken = id % 2 != 0;
+        if (isVaultToken) {
+            _vaultBeneficiaries[id] = address(0);
+        }
+
+        _ownerOf[id] = to;
+        delete getApproved[id];
+
+        emit Transfer(from, to, id);
     }
 }

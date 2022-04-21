@@ -34,7 +34,7 @@ contract TestExercise is Fixture {
         uint8 premiumIndex = 1;
         premium = c.premiumOptions(premiumIndex);
 
-        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
+        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, 1, strikeIndex, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
 
@@ -65,7 +65,7 @@ contract TestExercise is Fixture {
     function testItShouldTransferERC20ToOptionOwner() public {
         // arrange
         vm.prank(babe);
-        vaultId = c.createVault(tokenAmount, address(link), 1, 1, 1, 0, Cally.TokenType.ERC20);
+        vaultId = c.createVault(tokenAmount, address(link), 1, 1, 1, Cally.TokenType.ERC20);
         vault = c.vaults(vaultId);
         optionId = c.buyOption{value: premium}(vaultId);
         uint256 balanceBefore = link.balanceOf(address(this));

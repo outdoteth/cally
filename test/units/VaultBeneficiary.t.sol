@@ -11,7 +11,7 @@ contract TestVaultBeneficiary is Test, Fixture {
     function setUp() public {
         bayc.mint(address(this), 1);
         bayc.setApprovalForAll(address(c), true);
-        vaultId = c.createVault(1, address(bayc), 2, 1, 0, 0, Cally.TokenType.ERC721);
+        vaultId = c.createVault(1, address(bayc), 2, 1, 0, Cally.TokenType.ERC721);
     }
 
     function testItSetsVaultBeneficiary() public {
