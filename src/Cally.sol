@@ -62,8 +62,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         feeRate = feeRate_;
     }
 
-    function withdrawProtocolFees() public onlyOwner {
-        uint256 amount = protocolUnclaimedFees;
+    function withdrawProtocolFees() public onlyOwner returns (uint256 amount) {
+        amount = protocolUnclaimedFees;
         protocolUnclaimedFees = 0;
         payable(msg.sender).safeTransferETH(amount);
     }

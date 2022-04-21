@@ -16,6 +16,7 @@ abstract contract Fixture is Test {
     MockWeth internal weth;
 
     address internal babe;
+    address internal bob;
     string internal checkpointLabel;
     uint256 internal checkpointGasLeft;
 
@@ -28,6 +29,9 @@ abstract contract Fixture is Test {
 
         babe = address(0xbabe);
         vm.label(babe, "Babe");
+
+        bob = address(0xb0b);
+        vm.label(bob, "Bob");
 
         // make sure timestamp is not 0
         vm.warp(0xffff);
