@@ -3,4 +3,4 @@
 fuzz_runs = 1000
 
 [ci]
-fuzz-runs = 10_000
+fuzz-runs = 1000
