@@ -108,7 +108,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         ADMIN FUNCTIONS
     **********************/
 
-    /// @notice Sets the fee that is applied on exercised
+    /// @notice Sets the fee that is applied on exercise
     /// @param feeRate_ The new fee rate: fee = 1% = (1 / 100) * 1e18
     function setFee(uint256 feeRate_) external onlyOwner {
         feeRate = feeRate_;
@@ -143,7 +143,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     ///         on the underlying assets.
     /// @param tokenIdOrAmount The tokenId (NFT) or amount (ERC20) to vault
     /// @param token The address of the NFT or ERC20 contract to vault
-    /// @param tokenIdOrAmount The tokenId (NFT) or amount (ERC20) to vault
     /// @param premium The price of each call that is sold
     /// @param durationDays The length/duration of each call that is sold
     /// @param dutchAuctionStartingStrike The starting strike for each dutch auction
@@ -214,7 +213,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
         // check enough eth was sent to cover premium
         uint256 premium = getPremium(vaultId);
-        require(msg.value == premium, "Incorrect ETH amount sent");
+        require(msg.value >= premium, "Incorrect ETH amount sent");
 
         // set new currentStrike and expiration
         vault.currentStrike = getDutchAuctionStrike(
