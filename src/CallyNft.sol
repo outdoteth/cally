@@ -82,6 +82,7 @@ abstract contract CallyNft is ERC721("Cally", "CALL") {
         );
 
         string memory json = string.concat(
+            /* solhint-disable quotes */
             '{"name":"',
             "Cally",
             '","description":"',
@@ -126,6 +127,7 @@ abstract contract CallyNft is ERC721("Cally", "CALL") {
             nftType,
             '"}',
             "]}"
+            /* solhint-enable quotes */
         );
 
         return json;
