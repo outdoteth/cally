@@ -146,7 +146,7 @@ abstract contract CallyNft is ERC721("Cally", "CALL") {
     ) public pure returns (string memory) {
         return
             string.concat(
-                // solhint-disable-next-line
+                // solhint-disable-next-line quotes
                 '<svg xmlns="http://www.w3.org/2000/svg" width="350" height="350" style="background:#000">',
                 svg.text(
                     string.concat(
