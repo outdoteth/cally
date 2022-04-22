@@ -61,10 +61,10 @@ Withdrawal example:
 
 ## Notes
 
-**There are various optimiztions that may make the contracts harder to reason about.
-These are done to reduce gas cost burden on the user but at the cost of code readability.**
+**There are various optimizations that may make the contracts harder to reason about.
+These are done to reduce gas cost burden on the user but at the cost of code readability. Here are some helpful explanations of those optimizations.**
 
-## Premium and strike indexing
+### Premium and strike indexing
 
 To save gas, the details of each vault are represented as a struct with packed variables. To reduce storage costs, `premium` and `dutchAuctionStartingStrike` are uint8 indexes.
 They index to:
@@ -76,7 +76,7 @@ strikeOptions = [1 ether, 2 ether, ... 6765 ether]
 
 This means that instead of storing a `uint256` for the strike and premium values, we can just store a single `uint8`. Obviously the cost here is flexibility since a user is limited to our predefined set of strike/premium options.
 
-## Automatic auction starting
+### Automatic auction starting
 
 Auctions are automatically started without anyone having to call a method such as `startAuction` or something similar.
 If the expiration timestamp on the currently active option is less than the `block.timestamp` then the auction has started.
@@ -85,14 +85,14 @@ When a vault is _first_ created, the expiration timestamp is set to the current 
 Whenever a user buys a new option the expiration is set to `block.timestamp + duration`.
 Maybe a nice intuition: `expirationTimestamp == auctionStartTimestamp`
 
-## Vault ID and Option ID
+### Vault ID and Option ID
 
 When a user creates a vault they are given a vault NFT.
 When a user buys an option, they are given the associated vault's option NFT (1 per vault).
 Vault token ID's are always odd. And option token ID's are always even `optionId = associatedVaultId + 1`.
 Each vault NFT has 1 associated option NFT which is forcefully transferred between the old owner -> new owner whenever they buy an option from the vault auction.
 
-## Removing balanceOf
+### Removing balanceOf
 
 All balanceOf modifications have been removed from the Cally NFTs.
 This saves up to 20k gas when minting a vault NFT or buying an option NFT.
