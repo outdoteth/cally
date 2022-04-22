@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin/utils/Strings.sol";
 import "hot-chain-svg/SVG.sol";
-import "./Base64.sol";
+import "base64/base64.sol";
 
 // removes balanceOf modifications
 // questionable tradeoff but given our use-case it's reasonable
