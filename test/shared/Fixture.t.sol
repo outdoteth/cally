@@ -25,7 +25,7 @@ abstract contract Fixture is Test {
         link = new MockERC20("Mock Chainlink", "LINK", 18);
         weth = new MockWeth();
 
-        c = new Cally("http://test/", address(weth));
+        c = new Cally(address(weth));
 
         babe = address(0xbabe);
         vm.label(babe, "Babe");

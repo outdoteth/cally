@@ -100,7 +100,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     mapping(uint256 => address) private _vaultBeneficiaries;
     mapping(address => uint256) public ethBalance;
 
-    constructor(string memory baseURI_, address weth_) {
+    constructor(address weth_) {
         weth = ERC20(weth_);
     }
 
