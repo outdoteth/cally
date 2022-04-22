@@ -2,32 +2,60 @@
 pragma solidity 0.8.13;
 
 interface ICally {
-    // events
+    event NewVault(uint256 indexed vaultId, address indexed from, address indexed token);
+    event BoughtOption(uint256 indexed optionId, address indexed from, address indexed token);
+    event ExercisedOption(uint256 indexed optionId, address indexed from);
+    event Harvested(address indexed from, uint256 amount);
+    event InitiatedWithdrawal(uint256 indexed vaultId, address indexed from);
+    event Withdrawal(uint256 indexed vaultId, address indexed from);
 
-    // functions
+    struct Vault {
+        uint256 tokenIdOrAmount;
+        address token;
+        uint8 premium;
+        uint8 durationDays;
+        uint8 dutchAuctionStartingStrike;
+        bool isExercised;
+        bool isWithdrawing;
+        TokenType tokenType;
+        uint32 currentExpiration;
+        uint256 currentStrike;
+    }
 
-    // creates a perpetual covered call vault
+    enum TokenType {
+        ERC721,
+        ERC20
+    }
+
     function createVault(
-        uint256 tokenId,
+        uint256 tokenIdOrAmount,
         address token,
-        uint256 premium,
-        uint256 duration,
-        uint256 dutchAuctionStartingStrike,
-        uint256 dutchAuctionEndingStrike
-    ) external;
+        uint8 premium,
+        uint8 durationDays,
+        uint8 dutchAuctionStartingStrike,
+        TokenType tokenType
+    ) external returns (uint256 vaultId);
 
-    // buys the call at current auction price if auction is live
-    function buyOption(uint256 vaultId) external;
+    function buyOption(uint256 vaultId) external payable returns (uint256 optionId);
 
-    // exercises the call, sends strike, receives NFTs, check that option is live and not expired
-    function exercise(uint256 vaultId) external;
+    function exercise(uint256 optionId) external payable;
 
-    // stops the vault
     function initiateWithdraw(uint256 vaultId) external;
 
-    // sends NFTs back when the vault has stopped
     function withdraw(uint256 vaultId) external;
 
-    // claims all of the premiums
-    function harvest(uint256 vaultId) external;
+    function setVaultBeneficiary(uint256 vaultId, address beneficiary) external;
+
+    function harvest() external returns (uint256 amount);
+
+    function getVaultBeneficiary(uint256 vaultId) external view returns (address beneficiary);
+
+    function vaults(uint256 vaultId) external view returns (Vault memory);
+
+    function getPremium(uint256 vaultId) external view returns (uint256 premium);
+
+    function getDutchAuctionStrike(uint256 startingStrike, uint32 auctionEndTimestamp)
+        external
+        view
+        returns (uint256 strike);
 }

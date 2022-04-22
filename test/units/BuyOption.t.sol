@@ -183,15 +183,15 @@ contract TestBuyOption is Fixture {
         c.buyOption{value: premium}(2);
     }
 
-    function testItBuysOption(uint256 vaultId) public {
+    function testItBuysOption(uint256 vaultId_) public {
         // arrange
-        vm.assume(vaultId % 2 != 0);
-        vm.assume(c.vaults(vaultId).currentExpiration > 0);
+        vm.assume(vaultId_ % 2 != 0);
+        vm.assume(c.vaults(vaultId_).currentExpiration > 0);
 
         // act
-        uint256 optionId = c.buyOption{value: premium}(vaultId);
+        uint256 optionId = c.buyOption{value: premium}(vaultId_);
 
         // assert
-        assertEq(optionId, vaultId + 1, "Option ID should be 1 less thn vault ID");
+        assertEq(optionId, vaultId_ + 1, "Option ID should be 1 less thn vault ID");
     }
 }
