@@ -85,7 +85,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     }
 
     uint32 public constant AUCTION_DURATION = 24 hours;
-    ERC20 public immutable weth;
 
     // prettier-ignore
     uint256[] public premiumOptions = [0.01 ether, 0.025 ether, 0.05 ether, 0.075 ether, 0.1 ether, 0.25 ether, 0.5 ether, 0.75 ether, 1.0 ether, 2.5 ether, 5.0 ether, 7.5 ether, 10 ether, 25 ether, 50 ether, 75 ether, 100 ether];
@@ -99,10 +98,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     mapping(uint256 => Vault) private _vaults;
     mapping(uint256 => address) private _vaultBeneficiaries;
     mapping(address => uint256) public ethBalance;
-
-    constructor(address weth_) {
-        weth = ERC20(weth_);
-    }
 
     /*********************
         ADMIN FUNCTIONS
