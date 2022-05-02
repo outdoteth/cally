@@ -82,6 +82,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         TokenType tokenType;
         uint32 currentExpiration;
         uint256 currentStrike;
+        uint256 dutchAuctionReserveStrike;
     }
 
     uint32 public constant AUCTION_DURATION = 24 hours;
@@ -148,10 +149,12 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint8 premium,
         uint8 durationDays,
         uint8 dutchAuctionStartingStrike,
+        uint256 dutchAuctionReserveStrike,
         TokenType tokenType
     ) external returns (uint256 vaultId) {
         require(premium < premiumOptions.length, "Invalid premium index");
         require(dutchAuctionStartingStrike < strikeOptions.length, "Invalid strike index");
+        require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrike], "Invalid reserve strike");
         require(durationDays > 0, "Invalid durationDays");
 
         Vault memory vault = Vault({
@@ -164,7 +167,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
             isExercised: false,
             isWithdrawing: false,
             tokenType: tokenType,
-            currentStrike: 0
+            currentStrike: 0,
+            dutchAuctionReserveStrike: dutchAuctionReserveStrike
         });
 
         // vault index should always be odd
@@ -210,11 +214,17 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint256 premium = getPremium(vaultId);
         require(msg.value >= premium, "Incorrect ETH amount sent");
 
-        // set new currentStrike and expiration
-        vault.currentStrike = getDutchAuctionStrike(
+        // set new currentStrike as max(dutchAuctionStrike, dutchAuctionReserveStrike)
+        uint256 dutchAuctionStrike = getDutchAuctionStrike(
             strikeOptions[vault.dutchAuctionStartingStrike],
             vault.currentExpiration + AUCTION_DURATION
         );
+
+        vault.currentStrike = dutchAuctionStrike > vault.dutchAuctionReserveStrike
+            ? dutchAuctionStrike
+            : vault.dutchAuctionReserveStrike;
+
+        // set expiration
         vault.currentExpiration = uint32(block.timestamp) + (vault.durationDays * 1 days);
         _vaults[vaultId] = vault;
 

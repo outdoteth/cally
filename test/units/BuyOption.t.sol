@@ -11,6 +11,9 @@ contract TestBuyOption is Fixture {
     uint256 internal vaultId;
     uint256 internal premium;
     uint256 internal strike;
+
+    uint8 internal premiumIndex;
+    uint8 internal strikeIndex;
     Cally.Vault internal vault;
 
     function setUp() public {
@@ -20,12 +23,12 @@ contract TestBuyOption is Fixture {
         bayc.mint(babe, 1);
         bayc.setApprovalForAll(address(c), true);
 
-        uint8 premiumIndex = 1;
+        premiumIndex = 1;
         premium = c.premiumOptions(premiumIndex);
-        uint8 strikeIndex = 1;
+        strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
 
-        vaultId = c.createVault(1, address(bayc), premiumIndex, 1, strikeIndex, Cally.TokenType.ERC721);
+        vaultId = c.createVault(1, address(bayc), premiumIndex, 1, strikeIndex, 0, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
     }
@@ -73,6 +76,23 @@ contract TestBuyOption is Fixture {
 
         // assert
         assertEq(c.ownerOf(optionId), address(this), "Should have minted option to buyer");
+    }
+
+    function testItSetsStrikeToReserveIfDutchAuctionStrikeIsSmaller() public {
+        // arrange
+        vm.startPrank(babe);
+        bayc.mint(babe, 2);
+        uint256 reserveStrike = 1.1337 ether;
+        vaultId = c.createVault(2, address(bayc), premiumIndex, 1, strikeIndex, reserveStrike, Cally.TokenType.ERC721);
+        vm.stopPrank();
+        skip(24 hours);
+
+        // act
+        c.buyOption{value: premium}(vaultId);
+        strike = c.vaults(vaultId).currentStrike;
+
+        // assert
+        assertEq(strike, reserveStrike, "Incorrect strike");
     }
 
     function testItSetsStrikeToCurrentDutchAuctionPrice() public {
@@ -192,6 +212,6 @@ contract TestBuyOption is Fixture {
         uint256 optionId = c.buyOption{value: premium}(vaultId_);
 
         // assert
-        assertEq(optionId, vaultId_ + 1, "Option ID should be 1 less thn vault ID");
+        assertEq(optionId, vaultId_ + 1, "Option ID should be 1 less than vault ID");
     }
 }

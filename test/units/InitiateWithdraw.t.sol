@@ -15,7 +15,7 @@ contract TestInitiateWithdraw is Fixture {
         bayc.mint(address(this), 1);
         bayc.setApprovalForAll(address(c), true);
 
-        vaultId = c.createVault(1, address(bayc), 1, 1, 1, Cally.TokenType.ERC721);
+        vaultId = c.createVault(1, address(bayc), 1, 1, 1, 0, Cally.TokenType.ERC721);
     }
 
     function testItEmitsInitiateWithdrawalEvent() public {
