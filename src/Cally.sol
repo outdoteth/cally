@@ -215,14 +215,11 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         require(msg.value >= premium, "Incorrect ETH amount sent");
 
         // set new currentStrike as max(dutchAuctionStrike, dutchAuctionReserveStrike)
-        uint256 dutchAuctionStrike = getDutchAuctionStrike(
+        vault.currentStrike = getDutchAuctionStrike(
             strikeOptions[vault.dutchAuctionStartingStrike],
-            vault.currentExpiration + AUCTION_DURATION
+            vault.currentExpiration + AUCTION_DURATION,
+            vault.dutchAuctionReserveStrike
         );
-
-        vault.currentStrike = dutchAuctionStrike > vault.dutchAuctionReserveStrike
-            ? dutchAuctionStrike
-            : vault.dutchAuctionReserveStrike;
 
         // set expiration
         vault.currentExpiration = uint32(block.timestamp) + (vault.durationDays * 1 days);
@@ -389,11 +386,11 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     /// @param startingStrike The starting strike value
     /// @param auctionEndTimestamp The unix timestamp when the auction ends
     /// @return strike The strike
-    function getDutchAuctionStrike(uint256 startingStrike, uint32 auctionEndTimestamp)
-        public
-        view
-        returns (uint256 strike)
-    {
+    function getDutchAuctionStrike(
+        uint256 startingStrike,
+        uint32 auctionEndTimestamp,
+        uint256 reserveStrike
+    ) public view returns (uint256 strike) {
         /*
             delta = auctionEnd - currentTimestamp
             progress = delta / auctionDuration
@@ -401,7 +398,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         */
         uint256 delta = auctionEndTimestamp > block.timestamp ? auctionEndTimestamp - block.timestamp : 0;
         uint256 progress = (1e18 * delta) / AUCTION_DURATION;
-        strike = (progress * progress * startingStrike) / (1e18 * 1e18);
+        uint256 auctionStrike = (progress * progress * startingStrike) / (1e18 * 1e18);
+
+        // max(auctionStrike, reserveStrike)
+        strike = auctionStrike > reserveStrike ? auctionStrike : reserveStrike;
     }
 
     /*************************

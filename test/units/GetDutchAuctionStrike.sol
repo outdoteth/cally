@@ -18,7 +18,7 @@ contract TestGetDutchAuctionStrike is Fixture {
         uint256 startingStrike = 100 ether;
 
         // act
-        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp);
+        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, 0);
 
         // assert
         assertEq(strike, startingStrike, "Strike should be the starting value if no time has passed");
@@ -31,7 +31,7 @@ contract TestGetDutchAuctionStrike is Fixture {
         uint256 expectedStrike = 25 ether;
 
         // act
-        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp);
+        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, 0);
 
         // assert
         assertEq(strike, expectedStrike, "Strike should be the mid value if 50% of time has passed");
@@ -44,10 +44,23 @@ contract TestGetDutchAuctionStrike is Fixture {
         uint256 expectedStrike = 0;
 
         // act
-        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp);
+        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, 0);
 
         // assert
         assertEq(strike, expectedStrike, "Strike should return 0 at end");
+    }
+
+    function testItReturnsReserveStrikeIfGreater() public {
+        // arrange
+        uint32 auctionEndTimestamp = uint32(block.timestamp + auctionDuration / 2);
+        uint256 startingStrike = 100 ether;
+        uint256 reserveStrike = 30.337 ether;
+
+        // act
+        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
+
+        // assert
+        assertEq(strike, reserveStrike, "Should have returned reserve strike");
     }
 
     function testItReturnsZeroAfterEnd() public {
@@ -57,7 +70,7 @@ contract TestGetDutchAuctionStrike is Fixture {
         uint256 expectedStrike = 0;
 
         // act
-        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp);
+        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, 0);
 
         // assert
         assertEq(strike, expectedStrike, "Strike should return 0 at end");
