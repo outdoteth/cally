@@ -321,7 +321,7 @@
       },
       {
         "internalType": "uint8",
-        "name": "premium",
+        "name": "premiumIndex",
         "type": "uint8"
       },
       {
@@ -331,7 +331,7 @@
       },
       {
         "internalType": "uint8",
-        "name": "dutchAuctionStartingStrike",
+        "name": "dutchAuctionStartingStrikeIndex",
         "type": "uint8"
       },
       {
@@ -982,7 +982,7 @@
           },
           {
             "internalType": "uint8",
-            "name": "premium",
+            "name": "premiumIndex",
             "type": "uint8"
           },
           {
@@ -992,8 +992,13 @@
           },
           {
             "internalType": "uint8",
-            "name": "dutchAuctionStartingStrike",
+            "name": "dutchAuctionStartingStrikeIndex",
             "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "currentExpiration",
+            "type": "uint32"
           },
           {
             "internalType": "bool",
@@ -1009,11 +1014,6 @@
             "internalType": "enum Cally.TokenType",
             "name": "tokenType",
             "type": "uint8"
-          },
-          {
-            "internalType": "uint32",
-            "name": "currentExpiration",
-            "type": "uint32"
           },
           {
             "internalType": "uint256",
