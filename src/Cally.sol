@@ -445,7 +445,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
             vault.tokenIdOrAmount,
             getPremium(vault.premiumIndex),
             vault.durationDays,
-            vault.dutchAuctionStartingStrikeIndex,
+            strikeOptions[vault.dutchAuctionStartingStrikeIndex],
             vault.currentExpiration,
             vault.currentStrike,
             vault.isExercised,
