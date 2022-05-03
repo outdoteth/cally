@@ -156,6 +156,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         require(dutchAuctionStartingStrikeIndex < strikeOptions.length, "Invalid strike index");
         require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Invalid reserve strike");
         require(durationDays > 0, "Invalid durationDays");
+        require(tokenType == TokenType.ERC721 || tokenType == TokenType.ERC20, "Invalid token type");
 
         Vault memory vault = Vault({
             tokenIdOrAmount: tokenIdOrAmount,
@@ -318,13 +319,13 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         _burn(optionId);
         _burn(vaultId);
 
+        // claim any ETH still in the account
+        harvest();
+
         // transfer the NFTs or ERC20s back to the owner
         vault.tokenType == TokenType.ERC721
             ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
-
-        // claim any ETH still in the account
-        harvest();
 
         emit Withdrawal(vaultId, msg.sender);
     }
@@ -368,7 +369,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
     /// @notice Get details for a vault
     /// @param vaultId The tokenId of the vault to fetch the details for
-    function vaults(uint256 vaultId) public view returns (Vault memory) {
+    function vaults(uint256 vaultId) external view returns (Vault memory) {
         return _vaults[vaultId];
     }
 
