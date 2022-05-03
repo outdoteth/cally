@@ -24,7 +24,6 @@ import "solmate/utils/SafeTransferLib.sol";
 import "solmate/utils/ReentrancyGuard.sol";
 import "openzeppelin/access/Ownable.sol";
 
-import "./ICally.sol";
 import "./CallyNft.sol";
 
 /// @title Cally - https://cally.finance
@@ -77,10 +76,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint8 premiumIndex;
         uint8 durationDays;
         uint8 dutchAuctionStartingStrikeIndex;
+        uint32 currentExpiration;
         bool isExercised;
         bool isWithdrawing;
         TokenType tokenType;
-        uint32 currentExpiration;
         uint256 currentStrike;
         uint256 dutchAuctionReserveStrike;
     }
