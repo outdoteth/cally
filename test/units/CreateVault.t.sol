@@ -59,9 +59,9 @@ contract TestCreateVault is Test, Fixture {
         // arrange
         uint256 tokenId = 1;
         address token = address(bayc);
-        uint8 premium = 2;
+        uint8 premiumIndex = 2;
         uint8 durationDays = 3;
-        uint8 dutchAuctionStartingStrike = 3;
+        uint8 dutchAuctionStartingStrikeIndex = 3;
         uint256 dutchAuctionReserveStrike = 0.1 ether;
         Cally.TokenType tokenType = Cally.TokenType.ERC721;
 
@@ -69,9 +69,9 @@ contract TestCreateVault is Test, Fixture {
         uint256 vaultId = c.createVault(
             tokenId,
             token,
-            premium,
+            premiumIndex,
             durationDays,
-            dutchAuctionStartingStrike,
+            dutchAuctionStartingStrikeIndex,
             dutchAuctionReserveStrike,
             tokenType
         );
@@ -80,9 +80,13 @@ contract TestCreateVault is Test, Fixture {
         Cally.Vault memory vault = c.vaults(vaultId);
         assertEq(vault.tokenIdOrAmount, tokenId, "Should have set tokenId");
         assertEq(vault.token, token, "Should have set token");
-        assertEq(vault.premium, premium, "Should have set premium");
+        assertEq(vault.premiumIndex, premiumIndex, "Should have set premium index");
         assertEq(vault.durationDays, durationDays, "Should have set durationDays");
-        assertEq(vault.dutchAuctionStartingStrike, dutchAuctionStartingStrike, "Should have set starting strike");
+        assertEq(
+            vault.dutchAuctionStartingStrikeIndex,
+            dutchAuctionStartingStrikeIndex,
+            "Should have set starting strike"
+        );
         assertEq(vault.dutchAuctionReserveStrike, dutchAuctionReserveStrike, "Should have set reserve strike");
         assertEq(uint8(vault.tokenType), uint8(tokenType), "Should have set tokenType");
     }
@@ -136,21 +140,21 @@ contract TestCreateVault is Test, Fixture {
     }
 
     function testItCreatesVault(
-        uint8 premium,
+        uint8 premiumIndex,
         uint8 durationDays,
-        uint8 dutchAuctionStartingStrike
+        uint8 dutchAuctionStartingStrikeIndex
     ) public {
-        vm.assume(premium < 17);
+        vm.assume(premiumIndex < 17);
         vm.assume(durationDays > 0);
-        vm.assume(dutchAuctionStartingStrike < 19);
+        vm.assume(dutchAuctionStartingStrikeIndex < 19);
 
         // act
         uint256 vaultId = c.createVault(
             1,
             address(bayc),
-            premium,
+            premiumIndex,
             durationDays,
-            dutchAuctionStartingStrike,
+            dutchAuctionStartingStrikeIndex,
             0,
             Cally.TokenType.ERC721
         );
@@ -159,8 +163,12 @@ contract TestCreateVault is Test, Fixture {
         Cally.Vault memory vault = c.vaults(vaultId);
         assertEq(vault.tokenIdOrAmount, 1, "Should have set tokenId");
         assertEq(vault.token, address(bayc), "Should have set token");
-        assertEq(vault.premium, premium, "Should have set premium");
+        assertEq(vault.premiumIndex, premiumIndex, "Should have set premium index");
         assertEq(vault.durationDays, durationDays, "Should have set durationDays");
-        assertEq(vault.dutchAuctionStartingStrike, dutchAuctionStartingStrike, "Should have set starting strike");
+        assertEq(
+            vault.dutchAuctionStartingStrikeIndex,
+            dutchAuctionStartingStrikeIndex,
+            "Should have set starting strike index"
+        );
     }
 }

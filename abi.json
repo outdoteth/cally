@@ -335,6 +335,11 @@
         "type": "uint8"
       },
       {
+        "internalType": "uint256",
+        "name": "dutchAuctionReserveStrike",
+        "type": "uint256"
+      },
+      {
         "internalType": "enum Cally.TokenType",
         "name": "tokenType",
         "type": "uint8"
@@ -426,6 +431,11 @@
         "internalType": "uint32",
         "name": "auctionEndTimestamp",
         "type": "uint32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "reserveStrike",
+        "type": "uint256"
       }
     ],
     "name": "getDutchAuctionStrike",
@@ -1008,6 +1018,11 @@
           {
             "internalType": "uint256",
             "name": "currentStrike",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "dutchAuctionReserveStrike",
             "type": "uint256"
           }
         ],

@@ -74,9 +74,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     struct Vault {
         uint256 tokenIdOrAmount;
         address token;
-        uint8 premium;
+        uint8 premiumIndex;
         uint8 durationDays;
-        uint8 dutchAuctionStartingStrike;
+        uint8 dutchAuctionStartingStrikeIndex;
         bool isExercised;
         bool isWithdrawing;
         TokenType tokenType;
@@ -139,30 +139,30 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     ///         on the underlying assets.
     /// @param tokenIdOrAmount The tokenId (NFT) or amount (ERC20) to vault
     /// @param token The address of the NFT or ERC20 contract to vault
-    /// @param premium The price of each call that is sold
+    /// @param premiumIndex The index into the premiumOptions of each call that is sold
     /// @param durationDays The length/duration of each call that is sold
-    /// @param dutchAuctionStartingStrike The starting strike for each dutch auction
+    /// @param dutchAuctionStartingStrikeIndex The index into the strikeOptions for the starting strike for each dutch auction
     /// @param tokenType The type of the underlying asset (NFT or ERC20)
     function createVault(
         uint256 tokenIdOrAmount,
         address token,
-        uint8 premium,
+        uint8 premiumIndex,
         uint8 durationDays,
-        uint8 dutchAuctionStartingStrike,
+        uint8 dutchAuctionStartingStrikeIndex,
         uint256 dutchAuctionReserveStrike,
         TokenType tokenType
     ) external returns (uint256 vaultId) {
-        require(premium < premiumOptions.length, "Invalid premium index");
-        require(dutchAuctionStartingStrike < strikeOptions.length, "Invalid strike index");
-        require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrike], "Invalid reserve strike");
+        require(premiumIndex < premiumOptions.length, "Invalid premium index");
+        require(dutchAuctionStartingStrikeIndex < strikeOptions.length, "Invalid strike index");
+        require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Invalid reserve strike");
         require(durationDays > 0, "Invalid durationDays");
 
         Vault memory vault = Vault({
             tokenIdOrAmount: tokenIdOrAmount,
             token: token,
-            premium: premium,
+            premiumIndex: premiumIndex,
             durationDays: durationDays,
-            dutchAuctionStartingStrike: dutchAuctionStartingStrike,
+            dutchAuctionStartingStrikeIndex: dutchAuctionStartingStrikeIndex,
             currentExpiration: uint32(block.timestamp),
             isExercised: false,
             isWithdrawing: false,
@@ -216,7 +216,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
         // set new currentStrike as max(dutchAuctionStrike, dutchAuctionReserveStrike)
         vault.currentStrike = getDutchAuctionStrike(
-            strikeOptions[vault.dutchAuctionStartingStrike],
+            strikeOptions[vault.dutchAuctionStartingStrikeIndex],
             vault.currentExpiration + AUCTION_DURATION,
             vault.dutchAuctionReserveStrike
         );
@@ -377,7 +377,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     /// @return premium The premium for the vault
     function getPremium(uint256 vaultId) public view returns (uint256 premium) {
         Vault memory vault = _vaults[vaultId];
-        return premiumOptions[vault.premium];
+        return premiumOptions[vault.premiumIndex];
     }
 
     /// @notice Get the current dutch auction strike for a start value and end
@@ -443,9 +443,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         string memory jsonStr = renderJson(
             vault.token,
             vault.tokenIdOrAmount,
-            getPremium(vault.premium),
+            getPremium(vault.premiumIndex),
             vault.durationDays,
-            vault.dutchAuctionStartingStrike,
+            vault.dutchAuctionStartingStrikeIndex,
             vault.currentExpiration,
             vault.currentStrike,
             vault.isExercised,
