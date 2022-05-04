@@ -8,6 +8,7 @@
 
 ```
 git clone https://github.com/outdoteth/cally
+cd cally
 forge install
 ```
 
@@ -62,7 +63,7 @@ Withdrawal example:
 ## Notes
 
 **There are various optimizations that may make the contracts harder to reason about.
-These are done to reduce gas cost burden on the user but at the cost of code readability. Here are some helpful explanations of those optimizations.**
+These are done to reduce gas costs but at the expense of code readability. Here are some helpful explanations of those optimizations.**
 
 ### Premium and strike indexing
 
@@ -74,15 +75,16 @@ premiumOptions = [0.01 ether, 0.025 ether, ... 100 ether]
 strikeOptions = [1 ether, 2 ether, ... 6765 ether]
 ```
 
-This means that instead of storing a `uint256` for the strike and premium values, we can just store a single `uint8`. Obviously the cost here is flexibility since a user is limited to our predefined set of strike/premium options.
+This means that instead of storing a `uint256` for the strike and premium values, we can just store a single `uint8` index that references one of those options in the array. Obviously the cost here is flexibility since a user is limited to our predefined set of strike/premium options.
 
 ### Automatic auction starting
 
 Auctions are automatically started without anyone having to call a method such as `startAuction` or something similar.
-If the expiration timestamp on the currently active option is less than the `block.timestamp` then the auction has started.
+If the `block.timestamp` is greater than the current expiration of the vault's option then the auction has started.
+This is the key condition.
 The start time of the auction is the expiration timestamp.
 When a vault is _first_ created, the expiration timestamp is set to the current timestamp; this ensures that the auction is immediately started.
-Whenever a user buys a new option the expiration is set to `block.timestamp + duration`.
+Whenever a user buys a new option the expiration for the option in the vault is set to `block.timestamp + duration`.
 Maybe a nice intuition: `expirationTimestamp == auctionStartTimestamp`
 
 ### Vault ID and Option ID

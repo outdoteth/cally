@@ -16,7 +16,7 @@ pragma solidity 0.8.13;
     NFT & ERC20 covered call vaults.
     this is intended to be a public good.
     pog pog pog.
-
+    
 
 */
 
@@ -51,7 +51,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     event ExercisedOption(uint256 indexed optionId, address indexed from);
 
     /// @notice Fires when someone harvests their ETH balance
-    /// @param from The account that exercised the option
+    /// @param from The account that is harvesting
     /// @param amount The amount of ETH which was harvested
     event Harvested(address indexed from, uint256 amount);
 
@@ -73,9 +73,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     struct Vault {
         uint256 tokenIdOrAmount;
         address token;
-        uint8 premiumIndex;
-        uint8 durationDays;
-        uint8 dutchAuctionStartingStrikeIndex;
+        uint8 premiumIndex; // indexes into `premiumOptions`
+        uint8 durationDays; // days
+        uint8 dutchAuctionStartingStrikeIndex; // indexes into `strikeOptions`
         uint32 currentExpiration;
         bool isExercised;
         bool isWithdrawing;
@@ -93,10 +93,21 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
     uint256 public feeRate = 0;
     uint256 public protocolUnclaimedFees = 0;
+
+    /// @notice The current vault index. Used for determining which
+    ///         tokenId to use when minting a new vault. Increments by
+    ///         2 on each new mint.
     uint256 public vaultIndex = 1;
 
+    /// @notice Mapping of vault tokenId -> vault information
     mapping(uint256 => Vault) private _vaults;
+
+    /// @notice Mapping of vault tokenId -> vault beneficiary.
+    ///         Beneficiary is credited the premium when option is
+    ///         purchased or strike ETH when option is exercised.
     mapping(uint256 => address) private _vaultBeneficiaries;
+
+    /// @notice The unharvested ethBalance of each account
     mapping(address => uint256) public ethBalance;
 
     /*********************
@@ -123,7 +134,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     /*
         standard lifecycle:
             createVault
-            buyOption
+            buyOption (repeats)
             exercise
             initiateWithdraw
             withdraw
@@ -139,8 +150,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     /// @param tokenIdOrAmount The tokenId (NFT) or amount (ERC20) to vault
     /// @param token The address of the NFT or ERC20 contract to vault
     /// @param premiumIndex The index into the premiumOptions of each call that is sold
-    /// @param durationDays The length/duration of each call that is sold
+    /// @param durationDays The length/duration of each call that is sold in days
     /// @param dutchAuctionStartingStrikeIndex The index into the strikeOptions for the starting strike for each dutch auction
+    /// @param dutchAuctionReserveStrike The reserve strike for each dutch auction
     /// @param tokenType The type of the underlying asset (NFT or ERC20)
     function createVault(
         uint256 tokenIdOrAmount,
@@ -153,8 +165,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     ) external returns (uint256 vaultId) {
         require(premiumIndex < premiumOptions.length, "Invalid premium index");
         require(dutchAuctionStartingStrikeIndex < strikeOptions.length, "Invalid strike index");
-        require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Invalid reserve strike");
-        require(durationDays > 0, "Invalid durationDays");
+        require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Reserve strike too small");
+        require(durationDays > 0, "durationDays too small");
         require(tokenType == TokenType.ERC721 || tokenType == TokenType.ERC20, "Invalid token type");
 
         Vault memory vault = Vault({
@@ -179,12 +191,12 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         // give msg.sender vault token
         _mint(msg.sender, vaultId);
 
+        emit NewVault(vaultId, msg.sender, token);
+
         // transfer the NFTs or ERC20s to the contract
         vault.tokenType == TokenType.ERC721
             ? ERC721(vault.token).transferFrom(msg.sender, address(this), vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
-
-        emit NewVault(vaultId, msg.sender, token);
     }
 
     /// @notice Buys an option from a vault at a fixed premium and variable strike
@@ -206,27 +218,29 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         // check that the vault is not in withdrawing state
         require(vault.isWithdrawing == false, "Vault is being withdrawn");
 
-        // check option has expired
-        uint32 auctionStartTimestamp = vault.currentExpiration;
-        require(block.timestamp >= auctionStartTimestamp, "Auction not started");
-
         // check enough eth was sent to cover premium
         uint256 premium = getPremium(vaultId);
         require(msg.value >= premium, "Incorrect ETH amount sent");
 
-        // set new currentStrike as max(dutchAuctionStrike, dutchAuctionReserveStrike)
+        // check option associated with the vault has expired
+        uint32 auctionStartTimestamp = vault.currentExpiration;
+        require(block.timestamp >= auctionStartTimestamp, "Auction not started");
+
+        // set new currentStrike
         vault.currentStrike = getDutchAuctionStrike(
             strikeOptions[vault.dutchAuctionStartingStrikeIndex],
             vault.currentExpiration + AUCTION_DURATION,
             vault.dutchAuctionReserveStrike
         );
 
-        // set expiration
+        // set new expiration
         vault.currentExpiration = uint32(block.timestamp) + (vault.durationDays * 1 days);
+
+        // update the vault with the new option expiration and strike
         _vaults[vaultId] = vault;
 
-        // force transfer the expired option from old owner to new owner
-        // option id is for a respective vault is always vaultId + 1
+        // force transfer the vault's associated option from old owner to new owner
+        // option id for a respective vault is always vaultId + 1
         optionId = vaultId + 1;
         _forceTransfer(msg.sender, optionId);
 
@@ -259,7 +273,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         // burn the option token
         _burn(optionId);
 
-        // mark the vault as expired
+        // mark the vault as exercised
         vault.isExercised = true;
         _vaults[vaultId] = vault;
 
@@ -273,12 +287,12 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         // increment vault beneficiary's ETH balance
         ethBalance[getVaultBeneficiary(vaultId)] += msg.value - fee;
 
-        // transfer the NFTs or ERC20s to the buyer
+        emit ExercisedOption(optionId, msg.sender);
+
+        // transfer the NFTs or ERC20s to the exerciser
         vault.tokenType == TokenType.ERC721
             ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
-
-        emit ExercisedOption(optionId, msg.sender);
     }
 
     /// @notice Initiates a withdrawal so that the vault will no longer sell
@@ -297,7 +311,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
     }
 
     /// @notice Sends the underlying assets back to the vault owner and claims any
-    ///         unharvested premiums. Vault and it's associated option NFT are burned.
+    ///         unharvested premiums for the owner. Vault and it's associated option
+    ///         NFT are burned.
     /// @param vaultId The tokenId of the vault to withdraw
     function withdraw(uint256 vaultId) external nonReentrant {
         // vaultId should always be odd
@@ -318,6 +333,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         _burn(optionId);
         _burn(vaultId);
 
+        emit Withdrawal(vaultId, msg.sender);
+
         // claim any ETH still in the account
         harvest();
 
@@ -325,11 +342,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         vault.tokenType == TokenType.ERC721
             ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
-
-        emit Withdrawal(vaultId, msg.sender);
     }
 
-    /// @notice Sets the vault beneficiary who will receive premiums/strike ETH
+    /// @notice Sets the vault beneficiary that will receive premiums/strike ETH from the vault
     /// @param vaultId The tokenId of the vault to update
     /// @param beneficiary The new vault beneficiary
     function setVaultBeneficiary(uint256 vaultId, address beneficiary) external {
@@ -346,10 +361,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         amount = ethBalance[msg.sender];
         ethBalance[msg.sender] = 0;
 
+        emit Harvested(msg.sender, amount);
+
         // transfer premiums to owner
         payable(msg.sender).safeTransferETH(amount);
-
-        emit Harvested(msg.sender, amount);
     }
 
     /**********************
@@ -382,9 +397,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
     /// @notice Get the current dutch auction strike for a start value and end
     ///         timestamp. Strike decreases exponentially to 0 over time starting
-    ///         at dutchAuctionStartingStrike.
+    ///         at startingStrike. Minimum value returned is reserveStrike.
     /// @param startingStrike The starting strike value
     /// @param auctionEndTimestamp The unix timestamp when the auction ends
+    /// @param reserveStrike The minimum value for the strike
     /// @return strike The strike
     function getDutchAuctionStrike(
         uint256 startingStrike,
@@ -392,9 +408,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint256 reserveStrike
     ) public view returns (uint256 strike) {
         /*
-            delta = auctionEnd - currentTimestamp
+            delta = max(auctionEnd - currentTimestamp, 0)
             progress = delta / auctionDuration
-            strike = progress^2 * startingStrike
+            auctionStrike = progress^2 * startingStrike
+            strike = max(auctionStrike, reserveStrike)
         */
         uint256 delta = auctionEndTimestamp > block.timestamp ? auctionEndTimestamp - block.timestamp : 0;
         uint256 progress = (1e18 * delta) / AUCTION_DURATION;

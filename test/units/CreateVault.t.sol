@@ -129,13 +129,13 @@ contract TestCreateVault is Test, Fixture {
 
     function testItCannotCreateVaultWithInvalidReserveStrike() public {
         // act
-        vm.expectRevert("Invalid reserve strike");
+        vm.expectRevert("Reserve strike too small");
         c.createVault(1, address(bayc), 1, 12, 2, 1000 ether, Cally.TokenType.ERC721);
     }
 
     function testItCannotCreateVaultWithInvalidDurationDays() public {
         // act
-        vm.expectRevert("Invalid durationDays");
+        vm.expectRevert("durationDays too small");
         c.createVault(1, address(bayc), 1, 0, 1, 0, Cally.TokenType.ERC721);
     }
 
