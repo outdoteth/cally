@@ -6,9 +6,9 @@
 
 ## Installation
 
+Clone the repo and then run:
+
 ```
-git clone https://github.com/outdoteth/cally
-cd cally
 forge install
 ```
 
