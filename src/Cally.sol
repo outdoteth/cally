@@ -549,6 +549,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
             isVaultToken
         );
 
-        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(bytes(jsonStr))));
+        return string.concat("data:application/json;base64,", Base64.encode(bytes(jsonStr)));
     }
 }
