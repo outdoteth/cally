@@ -423,9 +423,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         return premiumOptions[vault.premiumIndex];
     }
 
-    /// @notice Get the current dutch auction strike for a start value and end
-    ///         timestamp. Strike decreases exponentially to 0 over time starting
-    ///         at startingStrike. Minimum value returned is reserveStrike.
+    /// @notice Get the current dutch auction strike for a starting strike,
+    ///         reserve strike and end timestamp. Strike decreases quadratically
+    //          to reserveStrike over time starting at startingStrike. Minimum
+    //          value returned is reserveStrike.
     /// @param startingStrike The starting strike value
     /// @param auctionEndTimestamp The unix timestamp when the auction ends
     /// @param reserveStrike The minimum value for the strike
@@ -438,15 +439,11 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         /*
             delta = max(auctionEnd - currentTimestamp, 0)
             progress = delta / auctionDuration
-            auctionStrike = progress^2 * startingStrike
-            strike = max(auctionStrike, reserveStrike)
+            strike = (progress^2 * (startingStrike - reserveStrike)) + reserveStrike
         */
         uint256 delta = auctionEndTimestamp > block.timestamp ? auctionEndTimestamp - block.timestamp : 0;
         uint256 progress = (1e18 * delta) / AUCTION_DURATION;
-        uint256 auctionStrike = (progress * progress * startingStrike) / (1e18 * 1e18);
-
-        // max(auctionStrike, reserveStrike)
-        strike = auctionStrike > reserveStrike ? auctionStrike : reserveStrike;
+        strike = (((progress * progress * (startingStrike - reserveStrike)) / 1e18) / 1e18) + reserveStrike;
     }
 
     /*************************

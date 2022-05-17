@@ -50,9 +50,9 @@ contract TestGetDutchAuctionStrike is Fixture {
         assertEq(strike, expectedStrike, "Strike should return 0 at end");
     }
 
-    function testItReturnsReserveStrikeIfGreater() public {
+    function testItReturnsReserveStrikeIfAuctionHasEnded() public {
         // arrange
-        uint32 auctionEndTimestamp = uint32(block.timestamp + auctionDuration / 2);
+        uint32 auctionEndTimestamp = uint32(block.timestamp);
         uint256 startingStrike = 100 ether;
         uint256 reserveStrike = 30.337 ether;
 
@@ -81,13 +81,33 @@ contract TestGetDutchAuctionStrike is Fixture {
         uint32 auctionEndTimestamp,
         uint256 reserveStrike
     ) public {
+        // arrange
         vm.assume(startingStrike > reserveStrike);
         vm.assume(startingStrike <= 6765 ether);
+        vm.assume(auctionEndTimestamp < block.timestamp + auctionDuration);
 
         // act
         uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
 
         // assert
         assertLe(strike, startingStrike, "Strike should always be lte starting strike");
+    }
+
+    function testStrikeAlwaysDecreasesAsTimeProgresses(
+        uint256 startingStrike,
+        uint32 auctionEndTimestamp,
+        uint256 reserveStrike
+    ) public {
+        // arrange
+        vm.assume(startingStrike > reserveStrike);
+        vm.assume(startingStrike <= 6765 ether);
+
+        // act
+        uint256 firstStrike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
+        skip(24); // 24 seconds is approx each new block
+        uint256 secondStrike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
+
+        // assert
+        assertGe(firstStrike, secondStrike, "Strike should always decrease as time progresses");
     }
 }
