@@ -29,7 +29,7 @@ import "./CallyNft.sol";
 /// @title Cally - https://cally.finance
 /// @author out.eth
 /// @notice NFT & ERC20 covered call vaults
-contract Cally is CallyNft, ReentrancyGuard, Ownable {
+contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address payable;
 
