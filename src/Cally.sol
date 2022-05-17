@@ -138,6 +138,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     }
 
     /// @notice Withdraws the protocol fees and sends to current owner
+    /// @return amount The amount of ETH that was withdrawn
     function withdrawProtocolFees() external onlyOwner returns (uint256 amount) {
         amount = protocolUnclaimedFees;
         protocolUnclaimedFees = 0;
@@ -202,6 +203,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param dutchAuctionStartingStrikeIndex The index into the strikeOptions for the starting strike for each dutch auction
     /// @param dutchAuctionReserveStrike The reserve strike for each dutch auction
     /// @param tokenType The type of the underlying asset (NFT or ERC20)
+    /// @return vaultId The tokenId of the newly minted vault NFT
     function createVault(
         uint256 tokenIdOrAmount,
         address token,
@@ -261,6 +263,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     ///         which is dependent on the dutch auction. Premium is credited to
     ///         vault beneficiary.
     /// @param vaultId The tokenId of the vault to buy the option from
+    /// @return optionId The token id of the associated option NFT for the vaultId
     function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
         Vault memory vault = _vaults[vaultId];
 
@@ -420,6 +423,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     }
 
     /// @notice Sends any unclaimed ETH (premiums/strike) to the msg.sender
+    /// @return amount The amount of ETH that was harvested
     function harvest() public returns (uint256 amount) {
         // reset premiums
         amount = ethBalance[msg.sender];
@@ -460,6 +464,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
     /// @notice Get details for a vault
     /// @param vaultId The tokenId of the vault to fetch the details for
+    /// @return vault The vault details for the vaultId
     function vaults(uint256 vaultId) external view returns (Vault memory) {
         return _vaults[vaultId];
     }
