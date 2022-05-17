@@ -139,6 +139,12 @@ contract TestCreateVault is Test, Fixture {
         c.createVault(1, address(bayc), 1, 0, 1, 0, Cally.TokenType.ERC721);
     }
 
+    function testItCannotCreateVaultWithNonContractTokenAddress() public {
+        // act
+        vm.expectRevert("token is not contract");
+        c.createVault(1, address(0xdeadbeef), 1, 1, 1, 0, Cally.TokenType.ERC20);
+    }
+
     function testItCreatesVault(
         uint8 premiumIndex,
         uint8 durationDays,
