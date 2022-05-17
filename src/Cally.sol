@@ -459,7 +459,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         address currentBeneficiary = _vaultBeneficiaries[vaultId];
 
         // return the current owner if vault beneficiary is not set
-        return currentBeneficiary == address(0) ? ownerOf(vaultId) : currentBeneficiary;
+        beneficiary = currentBeneficiary == address(0) ? ownerOf(vaultId) : currentBeneficiary;
     }
 
     /// @notice Get details for a vault
@@ -474,7 +474,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @return premium The premium for the vault
     function getPremium(uint256 vaultId) public view returns (uint256 premium) {
         Vault memory vault = _vaults[vaultId];
-        return premiumOptions[vault.premiumIndex];
+        premium = premiumOptions[vault.premiumIndex];
     }
 
     /// @notice Get the current dutch auction strike for a starting strike,
