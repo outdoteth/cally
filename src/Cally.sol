@@ -261,7 +261,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         // check enough eth was sent to cover premium
         uint256 premium = getPremium(vaultId);
-        require(msg.value >= premium, "Incorrect ETH amount sent");
+        require(msg.value == premium, "Incorrect ETH amount sent");
 
         // check option associated with the vault has expired
         uint32 auctionStartTimestamp = vault.currentExpiration;
