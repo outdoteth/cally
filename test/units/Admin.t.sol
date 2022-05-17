@@ -8,11 +8,11 @@ import "src/Cally.sol";
 contract TestAdmin is Test, Fixture {
     function testItSetsFee() public {
         // arrange
-        uint256 newFeeRate = 1000;
+        uint16 newFeeRate = (29 * 1000) / 100; // 29%
 
         // act
         c.setFee(newFeeRate);
-        uint256 feeRate = c.feeRate();
+        uint16 feeRate = c.feeRate();
 
         // assert
         assertEq(feeRate, newFeeRate, "Should have set fee rate");
@@ -20,7 +20,7 @@ contract TestAdmin is Test, Fixture {
 
     function testItCannotSetFeeHigherThanThreshold() public {
         // arrange
-        uint256 newFeeRate = (1e18 * 31) / 100;
+        uint16 newFeeRate = (1000 * 31) / 100; // 31%
 
         // act
         vm.expectRevert("Fee cannot be larger than 30%");
