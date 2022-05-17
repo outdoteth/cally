@@ -256,10 +256,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(ownerOf(vaultId) != address(0), "Vault does not exist");
 
         // check that the vault still has the NFTs as collateral
-        require(vault.isExercised == false, "Vault already exercised");
+        require(!vault.isExercised, "Vault already exercised");
 
         // check that the vault is not in withdrawing state
-        require(vault.isWithdrawing == false, "Vault is being withdrawn");
+        require(!vault.isWithdrawing, "Vault is being withdrawn");
 
         // check enough eth was sent to cover premium
         uint256 premium = getPremium(vaultId);
@@ -368,7 +368,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         Vault memory vault = _vaults[vaultId];
 
         // check vault can be withdrawn
-        require(vault.isExercised == false, "Vault already exercised");
+        require(!vault.isExercised, "Vault already exercised");
         require(vault.isWithdrawing, "Vault not in withdrawable state");
         require(block.timestamp > vault.currentExpiration, "Option still active");
 
