@@ -231,6 +231,7 @@ contract TestBuyOption is Fixture {
         // arrange
         vm.assume(premiumIndex < 15);
         vm.assume(durationDays > 0);
+        vm.assume(tokenIdOrAmount > 0);
         vm.assume(dutchAuctionStartingStrikeIndex < 15);
         vm.assume(dutchAuctionReserveStrike < c.strikeOptions(dutchAuctionStartingStrikeIndex));
 
