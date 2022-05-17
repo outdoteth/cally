@@ -364,6 +364,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         // check msg.sender owns the vault
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
 
+        // check vault is not already withdrawing
+        require(!_vaults[vaultId].isWithdrawing, "Vault is already withdrawing");
+
         _vaults[vaultId].isWithdrawing = true;
 
         emit InitiatedWithdrawal(vaultId, msg.sender);
