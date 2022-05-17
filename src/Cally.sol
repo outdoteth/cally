@@ -102,7 +102,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     // prettier-ignore
     uint256[] public strikeOptions = [1 ether, 2 ether, 3 ether, 5 ether, 8 ether, 13 ether, 21 ether, 34 ether, 55 ether, 89 ether, 144 ether, 233 ether, 377 ether, 610 ether, 987 ether, 1597 ether, 2584 ether, 4181 ether, 6765 ether];
 
-    /// @notice the feeRate of the protocol, ex; 300 = 30%, 10 = 1%, 3 = 0.3% etc
+    /// @notice the feeRate of the protocol, ex; 300 = 30%, 10 = 1%, 3 = 0.3% etc.
     uint16 public feeRate = 0;
     uint256 public protocolUnclaimedFees;
 
@@ -119,7 +119,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     ///         purchased or strike ETH when option is exercised.
     mapping(uint256 => address) private _vaultBeneficiaries;
 
-    /// @notice The unharvested ethBalance of each account
+    /// @notice The unharvested ethBalance of each account.
     mapping(address => uint256) public ethBalance;
 
     /*********************
@@ -180,7 +180,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     }
 
     /*
-        standard lifecycle:
+        standard life cycle:
             createVault
             buyOption (repeats)
             exercise
@@ -190,7 +190,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         [*] setVaultBeneficiary
         [*] harvest
 
-        [*] can be called anytime in lifecycle
+        [*] can be called anytime in life cycle
     */
 
     /// @notice Creates a new vault that perpetually sells calls
@@ -273,10 +273,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         // check that the vault still has the NFTs as collateral
         require(!vault.isExercised, "Vault already exercised");
 
-        // check that the vault is not in withdrawing state
+        // check that the vault is not in the withdrawing state
         require(!vault.isWithdrawing, "Vault is being withdrawn");
 
-        // check enough eth was sent to cover premium
+        // check enough ETH was sent to cover the premium
         uint256 premium = getPremium(vaultId);
         require(msg.value == premium, "Incorrect ETH amount sent");
 
@@ -297,8 +297,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         // update the vault with the new option expiration and strike
         _vaults[vaultId] = vault;
 
-        // force transfer the vault's associated option from old owner to new owner
-        // option id for a respective vault is always vaultId + 1
+        // force transfer the vault's associated option from old owner to new owner.
+        // option id for a respective vault is always vaultId + 1.
         optionId = vaultId + 1;
         _forceTransfer(msg.sender, optionId);
 
@@ -410,7 +410,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param vaultId The tokenId of the vault to update
     /// @param beneficiary The new vault beneficiary
     function setVaultBeneficiary(uint256 vaultId, address beneficiary) external {
-        // vaultId's should always be odd
+        // vaultIds should always be odd
         require(vaultId % 2 != 0, "Not vault type");
         require(msg.sender == ownerOf(vaultId), "Not owner");
 
@@ -496,7 +496,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     }
 
     /*************************
-        OVVERIDES FUNCTIONS
+        OVERRIDES FUNCTIONS
     **************************/
 
     /// @dev Resets the beneficiary address when transferring vault NFTs.
