@@ -155,6 +155,12 @@ contract TestCreateVault is Test, Fixture {
         c.createVault(3, address(c), 1, 1, 1, 0, Cally.TokenType.ERC721);
     }
 
+    function testItCannotCreateVaultWith0ERC20Tokens() public {
+        // act
+        vm.expectRevert("tokenIdOrAmount is 0");
+        c.createVault(0, address(link), 1, 1, 1, 0, Cally.TokenType.ERC20);
+    }
+
     function testItCreatesVault(
         uint8 premiumIndex,
         uint8 durationDays,
