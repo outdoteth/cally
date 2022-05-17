@@ -230,13 +230,13 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         emit NewVault(vaultId, msg.sender, token);
 
         // transfer the NFTs or ERC20s to the contract
-        if (vault.tokenType == TokenType.ERC721) {
-            ERC721(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
+        if (tokenType == TokenType.ERC721) {
+            ERC721(token).safeTransferFrom(msg.sender, address(this), tokenIdOrAmount);
         } else {
             // check balance before and after to handle fee-on-transfer tokens
-            uint256 balanceBefore = ERC20(vault.token).balanceOf(address(this));
-            ERC20(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
-            vault.tokenIdOrAmount = ERC20(vault.token).balanceOf(address(this)) - balanceBefore;
+            uint256 balanceBefore = ERC20(token).balanceOf(address(this));
+            ERC20(token).safeTransferFrom(msg.sender, address(this), tokenIdOrAmount);
+            vault.tokenIdOrAmount = ERC20(token).balanceOf(address(this)) - balanceBefore;
         }
 
         _vaults[vaultId] = vault;
