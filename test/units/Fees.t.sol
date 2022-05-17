@@ -6,6 +6,8 @@ import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
 contract TestFees is Test, Fixture {
+    event Harvested(address indexed from, uint256 amount);
+
     uint256 internal vaultId;
     uint256 internal strike;
     uint256 internal optionId;
@@ -94,5 +96,15 @@ contract TestFees is Test, Fixture {
 
         // arrange
         assertEq(change, unclaimedFees, "Should have sent ETH to owner");
+    }
+
+    function testItEmitsEventWhenWithdrawingFees() public {
+        // arrange
+        uint256 unclaimedFees = c.protocolUnclaimedFees();
+
+        // act
+        vm.expectEmit(true, true, false, false);
+        emit Harvested(address(this), unclaimedFees);
+        c.withdrawProtocolFees();
     }
 }

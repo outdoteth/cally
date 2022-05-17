@@ -6,6 +6,8 @@ import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
 contract TestVaultBeneficiary is Test, Fixture {
+    event SetVaultBeneficiary(uint256 indexed vaultId, address indexed from, address indexed to);
+
     uint256 internal vaultId;
 
     function setUp() public {
@@ -60,5 +62,12 @@ contract TestVaultBeneficiary is Test, Fixture {
 
         // assert
         assertEq(vaultBeneficiary, bob, "Should have cleared babe and set bob as beneficiary");
+    }
+
+    function testItEmitsEventOnNewBeneficiary() public {
+        // act
+        vm.expectEmit(true, true, true, false);
+        emit SetVaultBeneficiary(vaultId, address(this), babe);
+        c.setVaultBeneficiary(vaultId, babe);
     }
 }
