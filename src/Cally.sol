@@ -290,7 +290,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         // set new currentStrike
         vault.currentStrike = getDutchAuctionStrike(
             strikeOptions[vault.dutchAuctionStartingStrikeIndex],
-            vault.currentExpiration + AUCTION_DURATION,
+            auctionStartTimestamp + AUCTION_DURATION,
             vault.dutchAuctionReserveStrike
         );
 
