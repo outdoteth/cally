@@ -65,6 +65,16 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param from The account that is withdrawing
     event Withdrawal(uint256 indexed vaultId, address indexed from);
 
+    /// @notice Fires when owner sets a new fee
+    /// @param newFee The new feeRate
+    event SetFee(uint256 indexed newFee);
+
+    /// @notice Fires when a vault owner updates the vault beneficiary
+    /// @param vaultId The vault NFT which is being updated
+    /// @param from The vault owner
+    /// @param to The new beneficiary
+    event SetVaultBeneficiary(uint256 indexed vaultId, address indexed from, address indexed to);
+
     enum TokenType {
         ERC721,
         ERC20
@@ -123,12 +133,17 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(feeRate_ <= 300, "Fee cannot be larger than 30%");
 
         feeRate = feeRate_;
+
+        emit SetFee(feeRate_);
     }
 
     /// @notice Withdraws the protocol fees and sends to current owner
     function withdrawProtocolFees() external onlyOwner returns (uint256 amount) {
         amount = protocolUnclaimedFees;
         protocolUnclaimedFees = 0;
+
+        emit Harvested(msg.sender, amount);
+
         payable(msg.sender).safeTransferETH(amount);
     }
 
@@ -397,6 +412,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(msg.sender == ownerOf(vaultId), "Not owner");
 
         _vaultBeneficiaries[vaultId] = beneficiary;
+
+        emit SetVaultBeneficiary(vaultId, msg.sender, beneficiary);
     }
 
     /// @notice Sends any unclaimed ETH (premiums/strike) to the msg.sender

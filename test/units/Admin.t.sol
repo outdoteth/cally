@@ -6,6 +6,8 @@ import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
 contract TestAdmin is Test, Fixture {
+    event SetFee(uint256 indexed newFee);
+
     function testItSetsFee() public {
         // arrange
         uint16 newFeeRate = (29 * 1000) / 100; // 29%
@@ -16,6 +18,13 @@ contract TestAdmin is Test, Fixture {
 
         // assert
         assertEq(feeRate, newFeeRate, "Should have set fee rate");
+    }
+
+    function testItEmitsSetFeeEvent() public {
+        // act
+        vm.expectEmit(true, false, false, false);
+        emit SetFee(100);
+        c.setFee(100);
     }
 
     function testItCannotSetFeeHigherThanThreshold() public {
