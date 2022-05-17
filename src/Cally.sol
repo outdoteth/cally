@@ -406,6 +406,19 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         emit Harvested(msg.sender, amount);
 
+        // transfer premiums to msg.sender
+        payable(msg.sender).safeTransferETH(amount);
+    }
+
+    /// @notice Sends any unclaimed ETH (premiums/strike) locked in the
+    ///         contract to the current owner.
+    function selfHarvest() external onlyOwner returns (uint256 amount) {
+        // reset premiums
+        amount = ethBalance[address(this)];
+        ethBalance[address(this)] = 0;
+
+        emit Harvested(address(this), amount);
+
         // transfer premiums to owner
         payable(msg.sender).safeTransferETH(amount);
     }
