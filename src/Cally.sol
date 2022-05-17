@@ -213,7 +213,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     ) public returns (uint256 vaultId) {
         require(premiumIndex < premiumOptions.length, "Invalid premium index");
         require(dutchAuctionStartingStrikeIndex < strikeOptions.length, "Invalid strike index");
-        require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Reserve strike too small");
+        require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Reserve strike too large");
         require(durationDays > 0, "durationDays too small");
         require(tokenType == TokenType.ERC721 || tokenType == TokenType.ERC20, "Invalid token type");
         require(token.code.length > 0, "token is not contract");
