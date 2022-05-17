@@ -203,6 +203,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(tokenType == TokenType.ERC721 || tokenType == TokenType.ERC20, "Invalid token type");
         require(token.code.length > 0, "token is not contract");
         require(token != address(this), "token cannot be Cally contract");
+        require(tokenType == TokenType.ERC721 || tokenIdOrAmount > 0, "tokenIdOrAmount is 0");
 
         Vault memory vault = Vault({
             tokenIdOrAmount: tokenIdOrAmount,
