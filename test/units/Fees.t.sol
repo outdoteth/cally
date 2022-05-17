@@ -12,6 +12,8 @@ contract TestFees is Test, Fixture {
     uint256 internal tokenId;
     uint256 internal tokenAmount;
     uint256 internal premium;
+    uint8 internal strikeIndex;
+    uint8 internal premiumIndex;
     Cally.Vault internal vault;
 
     function setUp() public {
@@ -26,11 +28,10 @@ contract TestFees is Test, Fixture {
         link.mint(babe, tokenAmount);
         link.approve(address(c), type(uint256).max);
 
-        uint8 strikeIndex = 1;
+        strikeIndex = 1;
         strike = c.strikeOptions(strikeIndex);
-        uint8 premiumIndex = 1;
+        premiumIndex = 1;
         premium = c.premiumOptions(premiumIndex);
-
         vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
         vault = c.vaults(vaultId);
         vm.stopPrank();
@@ -44,9 +45,20 @@ contract TestFees is Test, Fixture {
 
     function testItIncrementsProtocolUnclaimedFees() public {
         // arrange
-        uint256 feeRate = (3 * 1e18) / 100; // 3%
+        uint16 feeRate = (3 * 1000) / 100; // 3%
         c.setFee(feeRate);
-        uint256 expectedUnclaimedFees = (feeRate * strike) / 1e18;
+        uint256 expectedUnclaimedFees = (30 * strike) / 1000;
+
+        vm.startPrank(babe);
+        tokenId = 2;
+        bayc.mint(babe, tokenId);
+        vaultId = c.createVault(tokenId, address(bayc), premiumIndex, strikeIndex, 1, 0, Cally.TokenType.ERC721);
+        vault = c.vaults(vaultId);
+        vm.stopPrank();
+
+        vm.prank(bob);
+        vm.deal(bob, 100 ether);
+        optionId = c.buyOption{value: premium}(vaultId);
 
         // act
         vm.prank(bob);
@@ -58,23 +70,18 @@ contract TestFees is Test, Fixture {
     }
 
     function testItDoesNotIncrementUnclaimedFeesIfFeeRateIs0() public {
-        // arrange
-        uint256 feeRate = 0; // 3%
-        c.setFee(feeRate);
-        uint256 expectedUnclaimedFees = 0;
-
         // act
         vm.prank(bob);
         c.exercise{value: strike}(optionId);
         uint256 unclaimedFees = c.protocolUnclaimedFees();
 
         // assert
-        assertEq(unclaimedFees, expectedUnclaimedFees, "Fee should have been 0% of strike");
+        assertEq(unclaimedFees, 0, "Fee should have been 0% of strike");
     }
 
     function testItWithdrawsProtocolFees() public {
         // arrange
-        uint256 feeRate = (3 * 1e18) / 100; // 3%
+        uint16 feeRate = (3 * 1000) / 100; // 3%
         c.setFee(feeRate);
         vm.prank(bob);
         c.exercise{value: strike}(optionId);

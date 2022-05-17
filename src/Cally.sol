@@ -80,6 +80,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         bool isExercised;
         bool isWithdrawing;
         TokenType tokenType;
+        uint16 feeRate;
         uint256 currentStrike;
         uint256 dutchAuctionReserveStrike;
     }
@@ -91,8 +92,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     // prettier-ignore
     uint256[] public strikeOptions = [1 ether, 2 ether, 3 ether, 5 ether, 8 ether, 13 ether, 21 ether, 34 ether, 55 ether, 89 ether, 144 ether, 233 ether, 377 ether, 610 ether, 987 ether, 1597 ether, 2584 ether, 4181 ether, 6765 ether];
 
-    uint256 public feeRate = 0;
-    uint256 public protocolUnclaimedFees = 0;
+    /// @notice the feeRate of the protocol, ex; 300 = 30%, 10 = 1%, 3 = 0.3% etc
+    uint16 public feeRate = 0;
+    uint256 public protocolUnclaimedFees;
 
     /// @notice The current vault index. Used for determining which
     ///         tokenId to use when minting a new vault. Increments by
@@ -115,10 +117,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     **********************/
 
     /// @notice Sets the fee that is applied on exercise
-    /// @param feeRate_ The new fee rate, ex: feeRate = 1% = 1e18 * (1 / 100)
-    ///                 1e18 is equal to 100% feeRate.
-    function setFee(uint256 feeRate_) external onlyOwner {
-        require(feeRate_ <= (1e18 * 30) / 100, "Fee cannot be larger than 30%");
+    /// @param feeRate_ The new fee rate, ex: feeRate = 1% = 10.
+    ///                 1000 is equal to 100% feeRate.
+    function setFee(uint16 feeRate_) external onlyOwner {
+        require(feeRate_ <= 300, "Fee cannot be larger than 30%");
 
         feeRate = feeRate_;
     }
@@ -211,6 +213,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
             isExercised: false,
             isWithdrawing: false,
             tokenType: tokenType,
+            feeRate: feeRate,
             currentStrike: 0,
             dutchAuctionReserveStrike: dutchAuctionReserveStrike
         });
@@ -317,8 +320,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         // collect protocol fee
         uint256 fee = 0;
-        if (feeRate > 0) {
-            fee = (msg.value * feeRate) / 1e18;
+        if (vault.feeRate > 0) {
+            // ex: 5% fees means vault.feeRate == 50
+            fee = (msg.value * vault.feeRate) / 1000;
             protocolUnclaimedFees += fee;
         }
 
