@@ -39,12 +39,13 @@ contract TestCreateVault is Test, Fixture {
         uint256 balanceBefore = link.balanceOf(address(this));
 
         // act
-        c.createVault(amount, address(link), 2, 1, 0, 0, Cally.TokenType.ERC20);
+        uint256 vaultId = c.createVault(amount, address(link), 2, 1, 0, 0, Cally.TokenType.ERC20);
         uint256 change = balanceBefore - link.balanceOf(address(this));
 
         // assert
         assertEq(link.balanceOf(address(c)), amount, "Should have sent LINK to Cally");
         assertEq(change, amount, "Should have sent LINK from account");
+        assertEq(c.vaults(vaultId).tokenIdOrAmount, change, "Should have set vault tokenIdOrAmount");
     }
 
     function testItMintsVaultERC721ToCreator() public {
