@@ -50,9 +50,9 @@ contract TestGetDutchAuctionStrike is Fixture {
         assertEq(strike, expectedStrike, "Strike should return 0 at end");
     }
 
-    function testItReturnsReserveStrikeIfGreater() public {
+    function testItReturnsReserveStrikeIfAuctionHasEnded() public {
         // arrange
-        uint32 auctionEndTimestamp = uint32(block.timestamp + auctionDuration / 2);
+        uint32 auctionEndTimestamp = uint32(block.timestamp);
         uint256 startingStrike = 100 ether;
         uint256 reserveStrike = 30.337 ether;
 
@@ -75,4 +75,6 @@ contract TestGetDutchAuctionStrike is Fixture {
         // assert
         assertEq(strike, expectedStrike, "Strike should return 0 at end");
     }
+
+    function testStrikeIsAlwaysLowerThanStartingStrike() public {}
 }
