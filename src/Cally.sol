@@ -29,7 +29,7 @@ import "./CallyNft.sol";
 /// @title Cally - https://cally.finance
 /// @author out.eth
 /// @notice NFT & ERC20 covered call vaults
-contract Cally is CallyNft, ReentrancyGuard, Ownable {
+contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     using SafeTransferLib for ERC20;
     using SafeTransferLib for address payable;
 
@@ -223,7 +223,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
         // transfer the NFTs or ERC20s to the contract
         vault.tokenType == TokenType.ERC721
-            ? ERC721(vault.token).transferFrom(msg.sender, address(this), vault.tokenIdOrAmount)
+            ? ERC721(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
     }
 
@@ -319,7 +319,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
         // transfer the NFTs or ERC20s to the exerciser
         vault.tokenType == TokenType.ERC721
-            ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
+            ? ERC721(vault.token).safeTransferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
     }
 
@@ -368,7 +368,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
 
         // transfer the NFTs or ERC20s back to the owner
         vault.tokenType == TokenType.ERC721
-            ? ERC721(vault.token).transferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
+            ? ERC721(vault.token).safeTransferFrom(address(this), msg.sender, vault.tokenIdOrAmount)
             : ERC20(vault.token).safeTransfer(msg.sender, vault.tokenIdOrAmount);
     }
 
