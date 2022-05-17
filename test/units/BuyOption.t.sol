@@ -203,7 +203,7 @@ contract TestBuyOption is Fixture {
         c.buyOption{value: premium}(2);
     }
 
-    function testItCannotBuyOptionIfValueIsGreaterThanPremium() {
+    function testItCannotBuyOptionIfValueIsGreaterThanPremium() public {
         // act
         vm.expectRevert("Incorrect ETH amount sent");
         c.buyOption{value: premium}(vaultId);
