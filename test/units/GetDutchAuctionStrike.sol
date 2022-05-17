@@ -76,5 +76,18 @@ contract TestGetDutchAuctionStrike is Fixture {
         assertEq(strike, expectedStrike, "Strike should return 0 at end");
     }
 
-    function testStrikeIsAlwaysLowerThanStartingStrike() public {}
+    function testStrikeIsAlwaysBelowStartingStrike(
+        uint256 startingStrike,
+        uint32 auctionEndTimestamp,
+        uint256 reserveStrike
+    ) public {
+        vm.assume(startingStrike > reserveStrike);
+        vm.assume(startingStrike <= 6765 ether);
+
+        // act
+        uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
+
+        // assert
+        assertLe(strike, startingStrike, "Strike should always be lte starting strike");
+    }
 }
