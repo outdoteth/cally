@@ -250,5 +250,10 @@ contract TestBuyOption is Fixture {
         // assert
         assertEq(c.ownerOf(optionId), address(this), "Should have given option to buyer");
         assertEq(c.ethBalance(babe), premium, "Should have credited premium ETH to babe");
+        assertEq(
+            c.vaults(vaultId).currentExpiration,
+            block.timestamp + uint32(durationDays) * 1 days,
+            "Should have updated the curent expiration"
+        );
     }
 }
