@@ -81,8 +81,10 @@ contract TestGetDutchAuctionStrike is Fixture {
         uint32 auctionEndTimestamp,
         uint256 reserveStrike
     ) public {
+        // arrange
         vm.assume(startingStrike > reserveStrike);
         vm.assume(startingStrike <= 6765 ether);
+        vm.assume(auctionEndTimestamp < block.timestamp + auctionDuration);
 
         // act
         uint256 strike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
