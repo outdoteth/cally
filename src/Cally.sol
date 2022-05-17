@@ -529,12 +529,13 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(_ownerOf[tokenId] != address(0), "URI query for NOT_MINTED token");
 
         bool isVaultToken = tokenId % 2 != 0;
-        Vault memory vault = _vaults[isVaultToken ? tokenId : tokenId - 1];
+        uint256 vaultId = isVaultToken ? tokenId : tokenId - 1;
+        Vault memory vault = _vaults[vaultId];
 
         string memory jsonStr = renderJson(
             vault.token,
             vault.tokenIdOrAmount,
-            getPremium(vault.premiumIndex),
+            getPremium(vaultId),
             vault.durationDays,
             strikeOptions[vault.dutchAuctionStartingStrikeIndex],
             vault.currentExpiration,
