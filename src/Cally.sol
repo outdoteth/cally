@@ -262,7 +262,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         );
 
         // set new expiration
-        vault.currentExpiration = uint32(block.timestamp) + (vault.durationDays * 1 days);
+        vault.currentExpiration = uint32(block.timestamp) + uint32(vault.durationDays) * 1 days;
 
         // update the vault with the new option expiration and strike
         _vaults[vaultId] = vault;

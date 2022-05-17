@@ -214,4 +214,41 @@ contract TestBuyOption is Fixture {
         // assert
         assertEq(optionId, vaultId_ + 1, "Option ID should be 1 less than vault ID");
     }
+
+    function testItBuysOptionforERC20(
+        uint256 tokenIdOrAmount,
+        uint8 premiumIndex,
+        uint8 durationDays,
+        uint8 dutchAuctionStartingStrikeIndex,
+        uint256 dutchAuctionReserveStrike
+    ) public {
+        // arrange
+        vm.assume(premiumIndex < 15);
+        vm.assume(durationDays > 0);
+        vm.assume(dutchAuctionStartingStrikeIndex < 15);
+        vm.assume(dutchAuctionReserveStrike < c.strikeOptions(dutchAuctionStartingStrikeIndex));
+
+        uint256 premium = c.premiumOptions(premiumIndex);
+
+        vm.startPrank(babe);
+        link.mint(babe, tokenIdOrAmount);
+        link.approve(address(c), type(uint256).max);
+        vaultId = c.createVault(
+            tokenIdOrAmount,
+            address(link),
+            premiumIndex,
+            durationDays,
+            dutchAuctionStartingStrikeIndex,
+            dutchAuctionReserveStrike,
+            Cally.TokenType.ERC20
+        );
+        vm.stopPrank();
+
+        // act
+        uint256 optionId = c.buyOption{value: premium}(vaultId);
+
+        // assert
+        assertEq(c.ownerOf(optionId), address(this), "Should have given option to buyer");
+        assertEq(c.ethBalance(babe), premium, "Should have credited premium ETH to babe");
+    }
 }
