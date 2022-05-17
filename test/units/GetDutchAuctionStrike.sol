@@ -104,7 +104,7 @@ contract TestGetDutchAuctionStrike is Fixture {
 
         // act
         uint256 firstStrike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
-        skip(24); // 12 seconds is approx each new block
+        skip(24); // 24 seconds is approx each new block
         uint256 secondStrike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
 
         // assert
