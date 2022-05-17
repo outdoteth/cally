@@ -131,6 +131,34 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         MAIN LOGIC FUNCTIONS
     ***************************/
 
+    /// @dev    A wrapper around createVault to allow for multiple
+    ///         vault creations in a single transaction.
+    function createVaults(
+        uint256[] memory tokenIdOrAmounts,
+        address[] memory tokens,
+        uint8[] memory premiumIndexes,
+        uint8[] memory durationDays,
+        uint8[] memory dutchAuctionStartingStrikeIndexes,
+        uint256[] memory dutchAuctionReserveStrikes,
+        TokenType[] memory tokenTypes
+    ) external returns (uint256[] memory vaultIds) {
+        vaultIds = new uint256[](tokenIdOrAmounts.length);
+
+        for (uint256 i = 0; i < tokenIdOrAmounts.length; i++) {
+            uint256 vaultId = createVault(
+                tokenIdOrAmounts[i],
+                tokens[i],
+                premiumIndexes[i],
+                durationDays[i],
+                dutchAuctionStartingStrikeIndexes[i],
+                dutchAuctionReserveStrikes[i],
+                tokenTypes[i]
+            );
+
+            vaultIds[i] = vaultId;
+        }
+    }
+
     /*
         standard lifecycle:
             createVault
@@ -162,7 +190,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint8 dutchAuctionStartingStrikeIndex,
         uint256 dutchAuctionReserveStrike,
         TokenType tokenType
-    ) external returns (uint256 vaultId) {
+    ) public returns (uint256 vaultId) {
         require(premiumIndex < premiumOptions.length, "Invalid premium index");
         require(dutchAuctionStartingStrikeIndex < strikeOptions.length, "Invalid strike index");
         require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Reserve strike too small");

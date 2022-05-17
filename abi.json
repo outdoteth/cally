@@ -359,6 +359,55 @@
   {
     "inputs": [
       {
+        "internalType": "uint256[]",
+        "name": "tokenIdOrAmounts",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint8[]",
+        "name": "premiumIndexes",
+        "type": "uint8[]"
+      },
+      {
+        "internalType": "uint8[]",
+        "name": "durationDays",
+        "type": "uint8[]"
+      },
+      {
+        "internalType": "uint8[]",
+        "name": "dutchAuctionStartingStrikeIndexes",
+        "type": "uint8[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "dutchAuctionReserveStrikes",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "enum Cally.TokenType[]",
+        "name": "tokenTypes",
+        "type": "uint8[]"
+      }
+    ],
+    "name": "createVaults",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "vaultIds",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "",
         "type": "address"
