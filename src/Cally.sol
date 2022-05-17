@@ -115,8 +115,11 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     **********************/
 
     /// @notice Sets the fee that is applied on exercise
-    /// @param feeRate_ The new fee rate: fee = 1% = (1 / 100) * 1e18
+    /// @param feeRate_ The new fee rate, ex: feeRate = 1% = 1e18 * (1 / 100)
+    ///                 1e18 is equal to 100% feeRate.
     function setFee(uint256 feeRate_) external onlyOwner {
+        require(feeRate_ <= (1e18 * 30) / 100, "Fee cannot be larger than 30%");
+
         feeRate = feeRate_;
     }
 

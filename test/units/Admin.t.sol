@@ -18,6 +18,15 @@ contract TestAdmin is Test, Fixture {
         assertEq(feeRate, newFeeRate, "Should have set fee rate");
     }
 
+    function testItCannotSetFeeHigherThanThreshold() public {
+        // arrange
+        uint256 newFeeRate = (1e18 * 31) / 100;
+
+        // act
+        vm.expectRevert("Fee cannot be larger than 30%");
+        c.setFee(newFeeRate);
+    }
+
     function testItCannotLetNonAdminSetFee() public {
         // arrange
         vm.prank(babe);
