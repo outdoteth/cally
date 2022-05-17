@@ -92,4 +92,22 @@ contract TestGetDutchAuctionStrike is Fixture {
         // assert
         assertLe(strike, startingStrike, "Strike should always be lte starting strike");
     }
+
+    function testStrikeAlwaysDecreasesAsTimeProgresses(
+        uint256 startingStrike,
+        uint32 auctionEndTimestamp,
+        uint256 reserveStrike
+    ) public {
+        // arrange
+        vm.assume(startingStrike > reserveStrike);
+        vm.assume(startingStrike <= 6765 ether);
+
+        // act
+        uint256 firstStrike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
+        skip(24); // 12 seconds is approx each new block
+        uint256 secondStrike = c.getDutchAuctionStrike(startingStrike, auctionEndTimestamp, reserveStrike);
+
+        // assert
+        assertGe(firstStrike, secondStrike, "Strike should always decrease as time progresses");
+    }
 }
