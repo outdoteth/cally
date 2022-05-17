@@ -215,7 +215,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         // vault index should always be odd
         vaultIndex += 2;
         vaultId = vaultIndex;
-        _vaults[vaultId] = vault;
 
         // give msg.sender vault token
         _mint(msg.sender, vaultId);
@@ -223,9 +222,16 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         emit NewVault(vaultId, msg.sender, token);
 
         // transfer the NFTs or ERC20s to the contract
-        vault.tokenType == TokenType.ERC721
-            ? ERC721(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount)
-            : ERC20(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
+        if (vault.tokenType == TokenType.ERC721) {
+            ERC721(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
+        } else {
+            // check balance before and after to handle fee-on-transfer tokens
+            uint256 balanceBefore = ERC20(vault.token).balanceOf(address(this));
+            ERC20(vault.token).safeTransferFrom(msg.sender, address(this), vault.tokenIdOrAmount);
+            vault.tokenIdOrAmount = ERC20(vault.token).balanceOf(address(this)) - balanceBefore;
+        }
+
+        _vaults[vaultId] = vault;
     }
 
     /// @notice Buys an option from a vault at a fixed premium and variable strike
