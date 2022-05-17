@@ -287,7 +287,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         // check option associated with the vault has expired
         uint32 auctionStartTimestamp = vault.currentExpiration;
-        require(block.timestamp > auctionStartTimestamp, "Auction not started");
+        require(block.timestamp >= auctionStartTimestamp, "Auction not started");
 
         // set new currentStrike
         vault.currentStrike = getDutchAuctionStrike(
