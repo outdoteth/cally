@@ -8,7 +8,7 @@ import "src/Cally.sol";
 contract TestAdmin is Test, Fixture {
     function testItSetsFee() public {
         // arrange
-        uint16 newFeeRate = (29 * 1000) / 100;
+        uint16 newFeeRate = (29 * 1000) / 100; // 29%
 
         // act
         c.setFee(newFeeRate);
