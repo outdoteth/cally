@@ -171,4 +171,33 @@ contract TestCreateVault is Test, Fixture {
             "Should have set starting strike index"
         );
     }
+
+    uint256[] tokenIdOrAmounts = [1, 2, 100];
+    address[] tokens = [address(bayc), address(bayc), address(bayc)];
+    uint8[] premiumIndexes = [1, 1, 1];
+    uint8[] durationDays = [12, 12, 12];
+    uint8[] dutchAuctionStartingStrikeIndexes = [1, 1, 1];
+    uint256[] dutchAuctionReserveStrikes = [0, 0, 0];
+    Cally.TokenType[] tokenTypes = [Cally.TokenType.ERC721, Cally.TokenType.ERC721, Cally.TokenType.ERC721];
+
+    function testItCreatesMultipleVaults() public {
+        // arrange
+        tokens = [address(bayc), address(bayc), address(bayc)];
+
+        // act
+        uint256[] memory vaultIds = c.createVaults(
+            tokenIdOrAmounts,
+            tokens,
+            premiumIndexes,
+            durationDays,
+            dutchAuctionStartingStrikeIndexes,
+            dutchAuctionReserveStrikes,
+            tokenTypes
+        );
+
+        // assert
+        assertEq(vaultIds.length, tokenIdOrAmounts.length, "Length should be equal to passed in array");
+        assertEq(vaultIds[0], 3, "Should have created first vault");
+        assertEq(vaultIds[vaultIds.length - 1], 7, "Should have created last vault");
+    }
 }

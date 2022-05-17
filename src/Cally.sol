@@ -142,7 +142,9 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
         uint256[] memory dutchAuctionReserveStrikes,
         TokenType[] memory tokenTypes
     ) external returns (uint256[] memory vaultIds) {
-        for (uint256 i = 0; i < tokenIdOrAmounts.length; ) {
+        vaultIds = new uint256[](tokenIdOrAmounts.length);
+
+        for (uint256 i = 0; i < tokenIdOrAmounts.length; i++) {
             uint256 vaultId = createVault(
                 tokenIdOrAmounts[i],
                 tokens[i],
@@ -154,10 +156,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable {
             );
 
             vaultIds[i] = vaultId;
-
-            unchecked {
-                i++;
-            }
         }
     }
 
