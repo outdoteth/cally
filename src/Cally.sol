@@ -312,15 +312,11 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         );
 
         // set new expiration
-        unchecked {
-            vault.currentExpiration = uint32(block.timestamp) + uint32(vault.durationDays) * 1 days;
-        }
+        vault.currentExpiration = uint32(block.timestamp) + uint32(vault.durationDays) * 1 days;
 
         // force transfer the vault's associated option from old owner to new owner.
         // option id for a respective vault is always vaultId + 1.
-        unchecked {
-            optionId = vaultId + 1;
-        }
+        optionId = vaultId + 1;
         _forceTransfer(msg.sender, optionId);
 
         // increment vault beneficiary's unclaimed premiums
@@ -411,10 +407,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(block.timestamp > vault.currentExpiration, "Option still active");
 
         // burn option and vault
-        unchecked {
-            uint256 optionId = vaultId + 1;
-            _burn(optionId);
-        }
+        uint256 optionId = vaultId + 1;
+        _burn(optionId);
         _burn(vaultId);
 
         emit Withdrawal(vaultId, msg.sender);
