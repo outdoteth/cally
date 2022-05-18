@@ -131,7 +131,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @notice Sets the fee that is applied on exercise
     /// @param feeRate_ The new fee rate, ex: feeRate = 1% = 10.
     ///                 1000 is equal to 100% feeRate.
-    function setFee(uint16 feeRate_) external onlyOwner {
+    function setFee(uint16 feeRate_) external payable onlyOwner {
         require(feeRate_ <= 300, "Fee cannot be larger than 30%");
 
         feeRate = feeRate_;
@@ -141,12 +141,25 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
     /// @notice Withdraws the protocol fees and sends to current owner
     /// @return amount The amount of ETH that was withdrawn
-    function withdrawProtocolFees() external onlyOwner returns (uint256 amount) {
+    function withdrawProtocolFees() external payable onlyOwner returns (uint256 amount) {
         amount = protocolUnclaimedFees;
         protocolUnclaimedFees = 0;
 
         emit Harvested(msg.sender, amount);
 
+        payable(msg.sender).safeTransferETH(amount);
+    }
+
+    /// @notice Sends any unclaimed ETH (premiums/strike) locked in the
+    ///         contract to the current owner.
+    function selfHarvest() external payable onlyOwner returns (uint256 amount) {
+        // reset premiums
+        amount = ethBalance[address(this)];
+        ethBalance[address(this)] = 0;
+
+        emit Harvested(address(this), amount);
+
+        // transfer premiums to owner
         payable(msg.sender).safeTransferETH(amount);
     }
 
@@ -219,29 +232,32 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(dutchAuctionStartingStrikeIndex < strikeOptions.length, "Invalid strike index");
         require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Reserve strike too large");
         require(durationDays > 0, "durationDays too small");
-        require(tokenType == TokenType.ERC721 || tokenType == TokenType.ERC20, "Invalid token type");
         require(token.code.length > 0, "token is not contract");
         require(token != address(this), "token cannot be Cally contract");
         require(tokenType == TokenType.ERC721 || tokenIdOrAmount > 0, "tokenIdOrAmount is 0");
 
-        Vault memory vault = Vault({
-            tokenIdOrAmount: tokenIdOrAmount,
-            token: token,
-            premiumIndex: premiumIndex,
-            durationDays: durationDays,
-            dutchAuctionStartingStrikeIndex: dutchAuctionStartingStrikeIndex,
-            currentExpiration: uint32(block.timestamp),
-            isExercised: false,
-            isWithdrawing: false,
-            tokenType: tokenType,
-            feeRate: feeRate,
-            currentStrike: 0,
-            dutchAuctionReserveStrike: dutchAuctionReserveStrike
-        });
-
         // vault index should always be odd
-        vaultIndex += 2;
+        unchecked {
+            vaultIndex = vaultIndex + 2;
+        }
         vaultId = vaultIndex;
+
+        Vault storage vault = _vaults[vaultId];
+
+        vault.token = token;
+        vault.premiumIndex = premiumIndex;
+        vault.durationDays = durationDays;
+        vault.dutchAuctionStartingStrikeIndex = dutchAuctionStartingStrikeIndex;
+        vault.currentExpiration = uint32(block.timestamp);
+        vault.tokenType = tokenType;
+
+        if (feeRate > 0) {
+            vault.feeRate = feeRate;
+        }
+
+        if (dutchAuctionReserveStrike > 0) {
+            vault.dutchAuctionReserveStrike = dutchAuctionReserveStrike;
+        }
 
         // give msg.sender vault token
         _mint(msg.sender, vaultId);
@@ -250,6 +266,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         // transfer the NFTs or ERC20s to the contract
         if (tokenType == TokenType.ERC721) {
+            vault.tokenIdOrAmount = tokenIdOrAmount;
             ERC721(token).safeTransferFrom(msg.sender, address(this), tokenIdOrAmount);
         } else {
             // check balance before and after to handle fee-on-transfer tokens
@@ -257,8 +274,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
             ERC20(token).safeTransferFrom(msg.sender, address(this), tokenIdOrAmount);
             vault.tokenIdOrAmount = ERC20(token).balanceOf(address(this)) - balanceBefore;
         }
-
-        _vaults[vaultId] = vault;
     }
 
     /// @notice Buys an option from a vault at a fixed premium and variable strike
@@ -267,13 +282,13 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param vaultId The tokenId of the vault to buy the option from
     /// @return optionId The token id of the associated option NFT for the vaultId
     function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
-        Vault memory vault = _vaults[vaultId];
-
         // vaultId should always be odd
         require(vaultId % 2 != 0, "Not vault type");
 
         // check vault exists
         require(ownerOf(vaultId) != address(0), "Vault does not exist");
+
+        Vault storage vault = _vaults[vaultId];
 
         // check that the vault still has the NFTs as collateral
         require(!vault.isExercised, "Vault already exercised");
@@ -282,7 +297,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(!vault.isWithdrawing, "Vault is being withdrawn");
 
         // check enough ETH was sent to cover the premium
-        uint256 premium = getPremium(vaultId);
+        uint256 premium = premiumOptions[vault.premiumIndex];
         require(msg.value == premium, "Incorrect ETH amount sent");
 
         // check option associated with the vault has expired
@@ -297,14 +312,15 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         );
 
         // set new expiration
-        vault.currentExpiration = uint32(block.timestamp) + uint32(vault.durationDays) * 1 days;
-
-        // update the vault with the new option expiration and strike
-        _vaults[vaultId] = vault;
+        unchecked {
+            vault.currentExpiration = uint32(block.timestamp) + uint32(vault.durationDays) * 1 days;
+        }
 
         // force transfer the vault's associated option from old owner to new owner.
         // option id for a respective vault is always vaultId + 1.
-        optionId = vaultId + 1;
+        unchecked {
+            optionId = vaultId + 1;
+        }
         _forceTransfer(msg.sender, optionId);
 
         // increment vault beneficiary's unclaimed premiums
@@ -325,7 +341,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(msg.sender == ownerOf(optionId), "You are not the owner");
 
         uint256 vaultId = optionId - 1;
-        Vault memory vault = _vaults[vaultId];
+        Vault storage vault = _vaults[vaultId];
 
         // check option hasn't expired
         require(block.timestamp < vault.currentExpiration, "Option has expired");
@@ -338,7 +354,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         // mark the vault as exercised
         vault.isExercised = true;
-        _vaults[vaultId] = vault;
 
         // collect protocol fee
         uint256 fee = 0;
@@ -388,7 +403,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         // check owner
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
 
-        Vault memory vault = _vaults[vaultId];
+        Vault storage vault = _vaults[vaultId];
 
         // check vault can be withdrawn
         require(!vault.isExercised, "Vault already exercised");
@@ -396,8 +411,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(block.timestamp > vault.currentExpiration, "Option still active");
 
         // burn option and vault
-        uint256 optionId = vaultId + 1;
-        _burn(optionId);
+        unchecked {
+            uint256 optionId = vaultId + 1;
+            _burn(optionId);
+        }
         _burn(vaultId);
 
         emit Withdrawal(vaultId, msg.sender);
@@ -437,19 +454,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         payable(msg.sender).safeTransferETH(amount);
     }
 
-    /// @notice Sends any unclaimed ETH (premiums/strike) locked in the
-    ///         contract to the current owner.
-    function selfHarvest() external onlyOwner returns (uint256 amount) {
-        // reset premiums
-        amount = ethBalance[address(this)];
-        ethBalance[address(this)] = 0;
-
-        emit Harvested(address(this), amount);
-
-        // transfer premiums to owner
-        payable(msg.sender).safeTransferETH(amount);
-    }
-
     /**********************
         GETTER FUNCTIONS
     ***********************/
@@ -475,7 +479,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param vaultId The tokenId of the vault to fetch the premium for
     /// @return premium The premium for the vault
     function getPremium(uint256 vaultId) public view returns (uint256 premium) {
-        Vault memory vault = _vaults[vaultId];
+        Vault storage vault = _vaults[vaultId];
         premium = premiumOptions[vault.premiumIndex];
     }
 
@@ -542,7 +546,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         string memory jsonStr = renderJson(
             vault.token,
             vault.tokenIdOrAmount,
-            getPremium(vaultId),
+            premiumOptions[vault.premiumIndex],
             vault.durationDays,
             strikeOptions[vault.dutchAuctionStartingStrikeIndex],
             vault.currentExpiration,
