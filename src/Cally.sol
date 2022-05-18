@@ -475,14 +475,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         return _vaults[vaultId];
     }
 
-    /// @notice Get the fixed option premium for a vault
-    /// @param vaultId The tokenId of the vault to fetch the premium for
-    /// @return premium The premium for the vault
-    function getPremium(uint256 vaultId) public view returns (uint256 premium) {
-        Vault storage vault = _vaults[vaultId];
-        premium = premiumOptions[vault.premiumIndex];
-    }
-
     /// @notice Get the current dutch auction strike for a starting strike,
     ///         reserve strike and end timestamp. Strike decreases quadratically
     //          to reserveStrike over time starting at startingStrike. Minimum
