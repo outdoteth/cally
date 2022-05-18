@@ -270,13 +270,13 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param vaultId The tokenId of the vault to buy the option from
     /// @return optionId The token id of the associated option NFT for the vaultId
     function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
-        Vault storage vault = _vaults[vaultId];
-
         // vaultId should always be odd
         require(vaultId % 2 != 0, "Not vault type");
 
         // check vault exists
         require(ownerOf(vaultId) != address(0), "Vault does not exist");
+
+        Vault storage vault = _vaults[vaultId];
 
         // check that the vault still has the NFTs as collateral
         require(!vault.isExercised, "Vault already exercised");
