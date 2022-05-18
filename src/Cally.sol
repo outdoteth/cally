@@ -225,7 +225,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         // vault index should always be odd
         unchecked {
-            vaultIndex += 2;
+            vaultIndex = vaultIndex + 2;
         }
         vaultId = vaultIndex;
 
