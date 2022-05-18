@@ -219,7 +219,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(dutchAuctionStartingStrikeIndex < strikeOptions.length, "Invalid strike index");
         require(dutchAuctionReserveStrike < strikeOptions[dutchAuctionStartingStrikeIndex], "Reserve strike too large");
         require(durationDays > 0, "durationDays too small");
-        require(tokenType == TokenType.ERC721 || tokenType == TokenType.ERC20, "Invalid token type");
         require(token.code.length > 0, "token is not contract");
         require(token != address(this), "token cannot be Cally contract");
         require(tokenType == TokenType.ERC721 || tokenIdOrAmount > 0, "tokenIdOrAmount is 0");
@@ -285,7 +284,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         require(!vault.isWithdrawing, "Vault is being withdrawn");
 
         // check enough ETH was sent to cover the premium
-        uint256 premium = getPremium(vaultId);
+        uint256 premium = premiumOptions[vault.premiumIndex];
         require(msg.value == premium, "Incorrect ETH amount sent");
 
         // check option associated with the vault has expired
@@ -547,7 +546,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         string memory jsonStr = renderJson(
             vault.token,
             vault.tokenIdOrAmount,
-            getPremium(vaultId),
+            premiumOptions[vault.premiumIndex],
             vault.durationDays,
             strikeOptions[vault.dutchAuctionStartingStrikeIndex],
             vault.currentExpiration,
