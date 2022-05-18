@@ -131,7 +131,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @notice Sets the fee that is applied on exercise
     /// @param feeRate_ The new fee rate, ex: feeRate = 1% = 10.
     ///                 1000 is equal to 100% feeRate.
-    function setFee(uint16 feeRate_) external onlyOwner {
+    function setFee(uint16 feeRate_) external payable onlyOwner {
         require(feeRate_ <= 300, "Fee cannot be larger than 30%");
 
         feeRate = feeRate_;
@@ -141,12 +141,25 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
     /// @notice Withdraws the protocol fees and sends to current owner
     /// @return amount The amount of ETH that was withdrawn
-    function withdrawProtocolFees() external onlyOwner returns (uint256 amount) {
+    function withdrawProtocolFees() external payable onlyOwner returns (uint256 amount) {
         amount = protocolUnclaimedFees;
         protocolUnclaimedFees = 0;
 
         emit Harvested(msg.sender, amount);
 
+        payable(msg.sender).safeTransferETH(amount);
+    }
+
+    /// @notice Sends any unclaimed ETH (premiums/strike) locked in the
+    ///         contract to the current owner.
+    function selfHarvest() external payable onlyOwner returns (uint256 amount) {
+        // reset premiums
+        amount = ethBalance[address(this)];
+        ethBalance[address(this)] = 0;
+
+        emit Harvested(address(this), amount);
+
+        // transfer premiums to owner
         payable(msg.sender).safeTransferETH(amount);
     }
 
@@ -438,19 +451,6 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         emit Harvested(msg.sender, amount);
 
         // transfer premiums to msg.sender
-        payable(msg.sender).safeTransferETH(amount);
-    }
-
-    /// @notice Sends any unclaimed ETH (premiums/strike) locked in the
-    ///         contract to the current owner.
-    function selfHarvest() external onlyOwner returns (uint256 amount) {
-        // reset premiums
-        amount = ethBalance[address(this)];
-        ethBalance[address(this)] = 0;
-
-        emit Harvested(address(this), amount);
-
-        // transfer premiums to owner
         payable(msg.sender).safeTransferETH(amount);
     }
 
