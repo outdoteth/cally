@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../shared/Fixture.t.sol";
 import "src/Cally.sol";
 
-contract TestIntegration is Fixture {
+contract TestIntegration is Test, Fixture {
     receive() external payable {}
 
     /*
@@ -24,11 +24,15 @@ contract TestIntegration is Fixture {
         uint24 skipTime
     ) public {
         // arrange
-        vm.assume(tokenIdOrAmount > 0);
-        vm.assume(durationDays > 0);
-        vm.assume(premiumIndex < 17);
-        vm.assume(dutchAuctionStartingStrikeIndex < 19);
-        vm.assume(dutchAuctionReserveStrike < c.strikeOptions(dutchAuctionStartingStrikeIndex));
+        vm.assume(tokenIdOrAmount != 0);
+        vm.assume(durationDays != 0);
+        premiumIndex = uint8(bound(premiumIndex, 0, 16));
+        dutchAuctionStartingStrikeIndex = uint8(bound(dutchAuctionStartingStrikeIndex, 0, 18));
+        dutchAuctionReserveStrike = bound(
+            dutchAuctionReserveStrike,
+            0,
+            c.strikeOptions(dutchAuctionStartingStrikeIndex)
+        );
 
         link.mint(address(this), tokenIdOrAmount);
         link.approve(address(c), type(uint256).max);
@@ -105,11 +109,15 @@ contract TestIntegration is Fixture {
         uint24 skipTime
     ) public {
         // arrange
-        vm.assume(tokenIdOrAmount > 0);
-        vm.assume(durationDays > 0);
-        vm.assume(premiumIndex < 17);
-        vm.assume(dutchAuctionStartingStrikeIndex < 19);
-        vm.assume(dutchAuctionReserveStrike < c.strikeOptions(dutchAuctionStartingStrikeIndex));
+        vm.assume(tokenIdOrAmount != 0);
+        vm.assume(durationDays != 0);
+        premiumIndex = uint8(bound(premiumIndex, 0, 16));
+        dutchAuctionStartingStrikeIndex = uint8(bound(dutchAuctionStartingStrikeIndex, 0, 18));
+        dutchAuctionReserveStrike = bound(
+            dutchAuctionReserveStrike,
+            0,
+            c.strikeOptions(dutchAuctionStartingStrikeIndex)
+        );
 
         link.mint(address(this), tokenIdOrAmount);
         link.approve(address(c), type(uint256).max);
@@ -149,6 +157,7 @@ contract TestIntegration is Fixture {
 
         // assert
         assertEq(link.balanceOf(address(this)), tokenIdOrAmount, "Should have returned link tokens");
+        assertEq(c.ethBalance(address(this)), 0, "Should have reset vault owner's ethBalance");
 
         vm.expectRevert("NOT_MINTED");
         c.ownerOf(vaultId);
@@ -176,11 +185,15 @@ contract TestIntegration is Fixture {
         uint24 skipTime
     ) public {
         // arrange
-        vm.assume(tokenIdOrAmount > 0);
-        vm.assume(durationDays > 0);
-        vm.assume(premiumIndex < 17);
-        vm.assume(dutchAuctionStartingStrikeIndex < 19);
-        vm.assume(dutchAuctionReserveStrike < c.strikeOptions(dutchAuctionStartingStrikeIndex));
+        vm.assume(tokenIdOrAmount != 0);
+        vm.assume(durationDays != 0);
+        premiumIndex = uint8(bound(premiumIndex, 0, 16));
+        dutchAuctionStartingStrikeIndex = uint8(bound(dutchAuctionStartingStrikeIndex, 0, 18));
+        dutchAuctionReserveStrike = bound(
+            dutchAuctionReserveStrike,
+            0,
+            c.strikeOptions(dutchAuctionStartingStrikeIndex)
+        );
 
         link.mint(address(this), tokenIdOrAmount);
         link.approve(address(c), type(uint256).max);

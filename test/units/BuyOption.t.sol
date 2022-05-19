@@ -209,18 +209,6 @@ contract TestBuyOption is Fixture {
         c.buyOption{value: premium + 1}(vaultId);
     }
 
-    function testItBuysOption(uint256 vaultId_) public {
-        // arrange
-        vm.assume(vaultId_ % 2 != 0);
-        vm.assume(c.vaults(vaultId_).currentExpiration > 0);
-
-        // act
-        uint256 optionId = c.buyOption{value: premium}(vaultId_);
-
-        // assert
-        assertEq(optionId, vaultId_ + 1, "Option ID should be 1 less than vault ID");
-    }
-
     function testItBuysOptionforERC20(
         uint256 tokenIdOrAmount,
         uint8 premiumIndex,
@@ -229,11 +217,15 @@ contract TestBuyOption is Fixture {
         uint256 dutchAuctionReserveStrike
     ) public {
         // arrange
-        vm.assume(premiumIndex < 15);
-        vm.assume(durationDays > 0);
-        vm.assume(tokenIdOrAmount > 0);
-        vm.assume(dutchAuctionStartingStrikeIndex < 15);
-        vm.assume(dutchAuctionReserveStrike < c.strikeOptions(dutchAuctionStartingStrikeIndex));
+        premiumIndex = uint8(bound(premiumIndex, 0, 16));
+        vm.assume(durationDays != 0);
+        vm.assume(tokenIdOrAmount != 0);
+        dutchAuctionStartingStrikeIndex = uint8(bound(dutchAuctionStartingStrikeIndex, 0, 18));
+        dutchAuctionReserveStrike = bound(
+            dutchAuctionReserveStrike,
+            0,
+            c.strikeOptions(dutchAuctionStartingStrikeIndex)
+        );
 
         uint256 premium = c.premiumOptions(premiumIndex);
 
