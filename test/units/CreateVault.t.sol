@@ -194,13 +194,13 @@ contract TestCreateVault is Test, Fixture {
         );
     }
 
-    uint256[] tokenIdOrAmounts = [1, 2, 100];
-    address[] tokens = [address(bayc), address(bayc), address(bayc)];
-    uint8[] premiumIndexes = [1, 1, 1];
-    uint8[] durationDays = [12, 12, 12];
-    uint8[] dutchAuctionStartingStrikeIndexes = [1, 1, 1];
-    uint256[] dutchAuctionReserveStrikes = [0, 0, 0];
-    Cally.TokenType[] tokenTypes = [Cally.TokenType.ERC721, Cally.TokenType.ERC721, Cally.TokenType.ERC721];
+    uint256[] internal tokenIdOrAmounts = [1, 2, 100];
+    address[] internal tokens = [address(bayc), address(bayc), address(bayc)];
+    uint8[] internal premiumIndexes = [1, 1, 1];
+    uint8[] internal durationDays = [12, 12, 12];
+    uint8[] internal dutchAuctionStartingStrikeIndexes = [1, 1, 1];
+    uint256[] internal dutchAuctionReserveStrikes = [0, 0, 0];
+    Cally.TokenType[] internal tokenTypes = [Cally.TokenType.ERC721, Cally.TokenType.ERC721, Cally.TokenType.ERC721];
 
     function testItCreatesMultipleVaults() public {
         // arrange
