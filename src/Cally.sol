@@ -289,7 +289,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
 
         Vault storage vault = _vaults[vaultId];
 
-        // check that the vault still has the NFTs as collateral
+        // check that the vault still has the NFTs or ERC20s as collateral
         require(!vault.isExercised, "Vault already exercised");
 
         // check that the vault is not in the withdrawing state
@@ -303,7 +303,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         uint32 auctionStartTimestamp = vault.currentExpiration;
         require(block.timestamp >= auctionStartTimestamp, "Auction not started");
 
-        // set new currentStrike
+        // set new currentStrike based on the dutch auction curve
         vault.currentStrike = getDutchAuctionStrike(
             strikeOptions[vault.dutchAuctionStartingStrikeIndex],
             auctionStartTimestamp + AUCTION_DURATION,
@@ -326,7 +326,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     }
 
     /// @notice Exercises a call option and sends the underlying assets to the
-    ///         exerciser and the strike ETH to the vault beneficiary.
+    ///         exerciser and credits the strike ETH to the vault beneficiary.
     /// @param optionId The tokenId of the option to exercise
     function exercise(uint256 optionId) external payable {
         // optionId should always be even
@@ -335,6 +335,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         // check owner
         require(msg.sender == ownerOf(optionId), "You are not the owner");
 
+        // vault id for a respective option is always optionId - 1.
         uint256 vaultId = optionId - 1;
         Vault storage vault = _vaults[vaultId];
 
@@ -388,8 +389,8 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     }
 
     /// @notice Sends the underlying assets back to the vault owner and claims any
-    ///         unharvested premiums for the owner. Vault and it's associated option
-    ///         NFT are burned.
+    ///         unharvested premiums for the owner. The vault NFT and it's associated
+    ///         option NFT are burned.
     /// @param vaultId The tokenId of the vault to withdraw
     function withdraw(uint256 vaultId) external nonReentrant {
         // vaultId should always be odd
@@ -468,10 +469,10 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         return _vaults[vaultId];
     }
 
-    /// @notice Get the current dutch auction strike for a starting strike,
-    ///         reserve strike and end timestamp. Strike decreases quadratically
-    //          to reserveStrike over time starting at startingStrike. Minimum
-    //          value returned is reserveStrike.
+    /// @notice Get the current dutch auction strike for a starting strike, auction
+    ///         end timestamp, and reserve strike. Strike decreases quadratically
+    ///         to reserveStrike over time starting at startingStrike. Minimum
+    ///         value returned is reserveStrike.
     /// @param startingStrike The starting strike value
     /// @param auctionEndTimestamp The unix timestamp when the auction ends
     /// @param reserveStrike The minimum value for the strike
