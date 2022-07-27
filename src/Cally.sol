@@ -282,7 +282,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @return optionId The token id of the associated option NFT for the vaultId
     function buyOption(uint256 vaultId) external payable returns (uint256 optionId) {
         // vaultId should always be odd
-        require(vaultId % 2 != 0, "Not vault type");
+        require(vaultId & 1 != 0, "Not vault type");
 
         // check vault exists
         require(ownerOf(vaultId) != address(0), "Vault does not exist");
@@ -330,7 +330,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param optionId The tokenId of the option to exercise
     function exercise(uint256 optionId) external payable {
         // optionId should always be even
-        require(optionId % 2 == 0, "Not option type");
+        require(optionId & 1 == 0, "Not option type");
 
         // check owner
         require(msg.sender == ownerOf(optionId), "You are not the owner");
@@ -375,7 +375,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param vaultId The tokenId of the vault to initiate a withdrawal on
     function initiateWithdraw(uint256 vaultId) external {
         // vaultId should always be odd
-        require(vaultId % 2 != 0, "Not vault type");
+        require(vaultId & 1 != 0, "Not vault type");
 
         // check msg.sender owns the vault
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
@@ -394,7 +394,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param vaultId The tokenId of the vault to withdraw
     function withdraw(uint256 vaultId) external nonReentrant {
         // vaultId should always be odd
-        require(vaultId % 2 != 0, "Not vault type");
+        require(vaultId & 1 != 0, "Not vault type");
 
         // check owner
         require(msg.sender == ownerOf(vaultId), "You are not the owner");
@@ -427,7 +427,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     /// @param beneficiary The new vault beneficiary
     function setVaultBeneficiary(uint256 vaultId, address beneficiary) external {
         // vaultIds should always be odd
-        require(vaultId % 2 != 0, "Not vault type");
+        require(vaultId & 1 != 0, "Not vault type");
         require(msg.sender == ownerOf(vaultId), "Not owner");
 
         _vaultBeneficiaries[vaultId] = beneficiary;
@@ -511,7 +511,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
         );
 
         // reset the beneficiary
-        bool isVaultToken = id % 2 != 0;
+        bool isVaultToken = id & 1 != 0;
         if (isVaultToken) {
             _vaultBeneficiaries[id] = address(0);
         }
@@ -525,7 +525,7 @@ contract Cally is CallyNft, ReentrancyGuard, Ownable, ERC721TokenReceiver {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_ownerOf[tokenId] != address(0), "URI query for NOT_MINTED token");
 
-        bool isVaultToken = tokenId % 2 != 0;
+        bool isVaultToken = tokenId & 1 != 0;
         uint256 vaultId = isVaultToken ? tokenId : tokenId - 1;
         Vault memory vault = _vaults[vaultId];
 
